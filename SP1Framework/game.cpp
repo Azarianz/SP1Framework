@@ -6,6 +6,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include "scores.h"
 
 double  g_dElapsedTime;
 double  g_dDeltaTime;
@@ -60,6 +61,27 @@ void shutdown( void )
     g_Console.clearBuffer();
 }
 
+void update2(double dt)
+{
+    // get the delta time
+    g_dElapsedTime += dt;
+    g_dDeltaTime = dt;
+
+    switch (g_eGameState)
+    {
+    case S_SPLASHSCREEN: splashScreenWait2(); // game logic for the splash screen
+        break;
+    case S_GAME: updateGame(); // gameplay logic when we are in the game
+        break;
+    }
+}
+
+void splashScreenWait2(void)
+{
+    if (g_dElapsedTime > 0.1) // wait for 3 seconds to switch to game mode, else do nothing
+        g_eGameState = S_GAME;
+}
+
 void resetTimer(void)
 {
     g_dElapsedTime = 0.0;
@@ -77,16 +99,16 @@ void render2(void) // for rendering the menu
 int renderMenu(void)
 {
     int choice;
-    COORD b, s, q;
-    std::ostringstream bb, ss, qq;
+    COORD b, s, q, x, y, z;
+    std::ostringstream bb, ss, qq, xx, yy, zz;
 
     b.X = 18; b.Y = 10;
     s.X = 18; s.Y = 15;
     q.X = 18; q.Y = 20;
 
-    bb << "Start";
-    ss << "Score";
-    qq << "Quit";
+    bb << "START";
+    ss << "SCORE";
+    qq << "QUIT";
 
     g_Console.writeToBuffer(b, bb.str(), 0xF0);
     g_Console.writeToBuffer(s, ss.str(), 0xF0);
@@ -103,12 +125,186 @@ int renderMenu(void)
 void render3(void)
 {
     clearScreen();
-    renderScore();
+    //renderScore();
     renderToScreen();
 }
 
 void renderScore(void)
 {
+}
+
+void render4(void)
+{
+    clearScreen();
+    renderName();
+    //renderInputEvents();
+    renderToScreen();
+}
+std::string name = "";
+bool renderName(void)
+{
+    bool conti = false;
+    COORD a,b;
+    a.X = 10; a.Y = 10;
+    b.X = 7; b.Y = 16;
+
+    g_Console.writeToBuffer(a, "Enter Player Name:", 0x0F);
+    g_Console.writeToBuffer(b, "Press 'Enter' to continue", 0x0F);
+
+    if (g_skKeyEvent[K_ENTER].keyReleased)    
+    {
+
+        return true;
+    }
+    else
+    {
+        COORD c;
+        c.X = 13;
+        c.Y = 13;
+
+        if (g_skKeyEvent[K_BACK].keyDown)
+        {
+            std::string newn = name.substr(0, name.length() - 1);
+            name = newn;
+        }
+        else if (name.length() == 12)
+        {
+            name = name;
+        }
+        else if (g_skKeyEvent[K_A].keyReleased)
+        {
+            name += "A";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_B].keyReleased)
+        {
+            name += "B";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_C].keyReleased)
+        {
+            name += "C";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_D].keyReleased)
+        {
+            name += "D";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_E].keyReleased)
+        {
+            name += "E";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_F].keyReleased)
+        {
+            name += "F";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_G].keyReleased)
+        {
+            name += "G";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_H].keyReleased)
+        {
+            name += "H";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_I].keyReleased)
+        {
+            name += "I";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_J].keyReleased)
+        {
+            name += "J";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_K].keyReleased)
+        {
+            name += "K";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_L].keyReleased)
+        {
+            name += "L";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_M].keyReleased)
+        {
+            name += "M";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_N].keyReleased)
+        {
+            name += "N";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_O].keyReleased)
+        {
+            name += "O";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_P].keyReleased)
+        {
+            name += "P";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_Q].keyReleased)
+        {
+            name += "Q";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_R].keyReleased)
+        {
+            name += "R";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_S].keyReleased)
+        {
+            name += "S";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_T].keyReleased)
+        {
+            name += "T";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_U].keyReleased)
+        {
+            name += "U";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_V].keyReleased)
+        {
+            name += "V";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_W].keyReleased)
+        {
+            name += "W";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_X].keyReleased)
+        {
+            name += "X";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_Y].keyReleased)
+        {
+            name += "Y";
+            //scores.setName(add);
+        }
+        else if (g_skKeyEvent[K_Z].keyReleased)
+        {
+            name += "Z";
+            //scores.setName(add);
+        }
+        std::ostringstream cc;
+        cc << name;
+        g_Console.writeToBuffer(c, cc.str(), 0x0F);
+    }
 }
 
 //--------------------------------------------------------------
@@ -192,6 +388,8 @@ void mouseHandler(const MOUSE_EVENT_RECORD& mouseEvent)
 // Input    : const KEY_EVENT_RECORD& keyboardEvent
 // Output   : void
 //--------------------------------------------------------------
+
+
 void gameplayKBHandler(const KEY_EVENT_RECORD& keyboardEvent)
 {
     // here, we map the key to our enums
@@ -203,7 +401,35 @@ void gameplayKBHandler(const KEY_EVENT_RECORD& keyboardEvent)
     case VK_LEFT: key = K_LEFT; break; 
     case VK_RIGHT: key = K_RIGHT; break; 
     case VK_SPACE: key = K_SPACE; break;
-    case VK_ESCAPE: key = K_ESCAPE; break; 
+    case VK_ESCAPE: key = K_ESCAPE; break;
+    case VK_RETURN : key = K_ENTER; break;
+    case VK_BACK: key = K_BACK; break;
+    case 'A': key = K_A; break;
+    case 'B': key = K_B; break;
+    case 'C': key = K_C; break;
+    case 'D': key = K_D; break;
+    case 'E': key = K_E; break;
+    case 'F': key = K_F; break;
+    case 'G': key = K_G; break;
+    case 'H': key = K_H; break;
+    case 'I': key = K_I; break;
+    case 'J': key = K_J; break;
+    case 'K': key = K_K; break;
+    case 'L': key = K_L; break;
+    case 'M': key = K_M; break;
+    case 'N': key = K_N; break;
+    case 'O': key = K_O; break;
+    case 'P': key = K_P; break;
+    case 'Q': key = K_Q; break;
+    case 'R': key = K_R; break;
+    case 'S': key = K_S; break;
+    case 'T': key = K_T; break;
+    case 'U': key = K_U; break;
+    case 'V': key = K_V; break;
+    case 'W': key = K_W; break;
+    case 'X': key = K_X; break;
+    case 'Y': key = K_Y; break;
+    case 'Z': key = K_Z; break;
     }
     // a key pressed event would be one with bKeyDown == true
     // a key released event would be one with bKeyDown == false
@@ -338,7 +564,7 @@ void render()
         break;
     }
     renderFramerate();      // renders debug information, frame rate, elapsed time, etc
-    //renderInputEvents();    // renders status of input events
+    renderInputEvents();    // renders status of input events
     renderToScreen();       // dump the contents of the buffer to the screen, one frame worth of game
 }
 
@@ -400,7 +626,7 @@ void renderMap()
                 colour(colors[1]);
             }
 
-            g_Console.writeToBuffer(c, " ", colors[3]); //wat the shit is this
+            g_Console.writeToBuffer(c, " ", colors[3]);
         }
     }
 }
@@ -449,16 +675,40 @@ void renderInputEvents()
         ss.str("");
         switch (i)
         {
-        case K_UP: key = "UP";
-            break;
-        case K_DOWN: key = "DOWN";
-            break;
-        case K_LEFT: key = "LEFT";
-            break;
-        case K_RIGHT: key = "RIGHT";
-            break;
-        case K_SPACE: key = "SPACE";
-            break;
+        case K_UP: key = "UP"; break;
+        case K_DOWN: key = "DOWN"; break;
+        case K_LEFT: key = "LEFT"; break;
+        case K_RIGHT: key = "RIGHT"; break;
+        case K_SPACE: key = "SPACE"; break;
+        case K_ESCAPE: key = "ESCAPE"; break;
+        case K_ENTER: key = "ENTER"; break;
+        case K_BACK: key = "BACKSPACE"; break;
+        case K_A: key = "A"; break;
+        /*case K_B: key = "B"; break;
+        case K_C: key = "C"; break;
+        case K_D: key = "D"; break;
+        case K_E: key = "E"; break;
+        case K_F: key = "F"; break;
+        case K_G: key = "G"; break;
+        case K_H: key = "H"; break;
+        case K_I: key = "I"; break;
+        case K_J: key = "J"; break;
+        case K_K: key = "K"; break;
+        case K_L: key = "L"; break;
+        case K_M: key = "M"; break;
+        case K_N: key = "N"; break;
+        case K_O: key = "O"; break;
+        case K_P: key = "P"; break;
+        case K_Q: key = "Q"; break;
+        case K_R: key = "R"; break;
+        case K_S: key = "S"; break;
+        case K_T: key = "T"; break;
+        case K_U: key = "U"; break;
+        case K_V: key = "V"; break;
+        case K_W: key = "X"; break;
+        case K_X: key = "X"; break;
+        case K_Y: key = "Y"; break;
+        case K_Z: key = "Z"; break;*/
         default: continue;
         }
         if (g_skKeyEvent[i].keyDown)

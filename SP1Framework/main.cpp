@@ -2,6 +2,7 @@
 
 #include "Framework\timer.h"
 #include "game.h"
+#include "scores.h"
 
 CStopWatch g_Timer;                            // Timer function to keep track of time and the frame rate
 bool g_bQuitGame = false;                    // Set to true if you want to quit the game
@@ -9,6 +10,8 @@ const unsigned char gc_ucFPS = 30;                // FPS of this game
 const unsigned int gc_uFrameTime = 1000 / gc_ucFPS;    // time for each frame
 
 bool gO = false;
+bool name = false;
+int scorecount = 0;
 
 //main loop declaration
 void mainLoop( void );
@@ -36,21 +39,39 @@ int main( void )
 //--------------------------------------------------------------
 void mainLoop( void )
 {
+    //scores* ptr[5] = { nullptr,nullptr, nullptr, nullptr, nullptr };
     g_Timer.startTimer();    // Start timer to calculate how long it takes to render this frame
     while (!g_bQuitGame)      // run this loop until user wants to quit 
     {   
-
-        update(g_Timer.getElapsedTime());
+        update2(g_Timer.getElapsedTime());
         getInput();
         render2();
-        update(g_Timer.getElapsedTime());
         g_Timer.waitUntil(gc_uFrameTime);
         if (renderMenu() == 1)
         {   
             resetTimer();
             g_Timer.startTimer();
+            while (true)
+            {
+                getInput();
+                render4();
+                update2(g_Timer.getElapsedTime());
+                g_Timer.waitUntil(gc_uFrameTime);
+                if (renderName() == true)
+                    break;
+            }
+            
+            resetTimer();
+            g_Timer.startTimer();
             while (!gO)
             {
+                /*int placing = 0;
+                for (unsigned int x = 0; x < 5; ++x)
+                {
+                    if (ptr[x] == nullptr)
+                        ptr[x] = new scores;
+                    placing = x;
+                }*/
                 getInput();
                 render();
                 update(g_Timer.getElapsedTime());

@@ -32,6 +32,11 @@ enum EKEYS
     K_RIGHT,
     K_ESCAPE,
     K_SPACE,
+    K_ENTER,
+    K_BACK,
+    K_A, K_B, K_C, K_D, K_E, K_F, K_G, K_H, K_I,
+    K_J, K_K, K_L, K_M, K_N, K_O, K_P, K_Q, K_R,
+    K_S, K_T, K_U, K_V, K_W, K_X, K_Y, K_Z,
     K_COUNT
 };
 
@@ -56,13 +61,17 @@ void update      ( double dt ); // update the game and the state of the game
 void render      ( void );      // renders the current state of the game to the console
 void shutdown    ( void );      // do clean up, free memory
 
+void update2(double dt); //zero waiting time for menu, name input, and score page
+void splashScreenWait2(void);
+
 void resetTimer(void); // resets the timer and scrn state for when the user enters a new game from menu
 
-void render2(void); // for rendering menu
+void render2(void); // for rendering menu : functions for menu
 int renderMenu(void); // will be inside render3
-void render3(void); // for rendering score
+void render3(void); // for rendering score : functions for scores
 void renderScore(void); // will be inside render3
-
+void render4(void); // for rendering the page for player to input name
+bool renderName(void); // will be inside render4 : functions for name page
 
 void splashScreenWait();    // waits for time to pass in splash screen
 void updateGame();          // gameplay logic
