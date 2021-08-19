@@ -9,6 +9,7 @@ public:
 	scores(void);
 	void getScore(void);
 	int setScore(void);
-	std::string setName(std::string x);
+	std::string getName(void);
+	void setName(std::string x);
 };
 

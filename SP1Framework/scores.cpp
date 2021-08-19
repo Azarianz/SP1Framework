@@ -17,8 +17,12 @@ int scores::setScore(void)
 	return score;
 }
 
-std::string scores::setName(std::string x)
+std::string scores::getName(void)
 {
-	name += x;
 	return name;
+}
+
+void scores::setName(std::string x)
+{
+	name = x;
 }

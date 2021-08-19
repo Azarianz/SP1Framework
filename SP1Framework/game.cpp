@@ -18,7 +18,10 @@ SGameChar   g_sChar;
 EGAMESTATES g_eGameState = S_SPLASHSCREEN; // initial state
 
 // Console object
-Console g_Console(40, 30, "SP1 Framework");
+Console g_Console(60, 30, "SP1 Framework");
+
+std::string name = ""; // takes in user input name
+scores score[5]; // no of scores that can be kept
 
 //--------------------------------------------------------------
 // Purpose  : Initialisation function
@@ -35,7 +38,7 @@ void init( void )
     // sets the initial state for the game
     g_eGameState = S_SPLASHSCREEN;
 
-    g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+    g_sChar.m_cLocation.X = 20;
     g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y / 2;
     g_sChar.m_bActive = true;
     // sets the width, height and the font name to use in the console
@@ -102,9 +105,9 @@ int renderMenu(void)
     COORD b, s, q, x, y, z;
     std::ostringstream bb, ss, qq, xx, yy, zz;
 
-    b.X = 18; b.Y = 10;
-    s.X = 18; s.Y = 15;
-    q.X = 18; q.Y = 20;
+    b.X = g_Console.getConsoleSize().X / 2 - 4; b.Y = 15;
+    s.X = g_Console.getConsoleSize().X / 2 - 4; s.Y = 17;
+    q.X = g_Console.getConsoleSize().X / 2 - 4; q.Y = 19;
 
     bb << "START";
     ss << "SCORE";
@@ -114,11 +117,11 @@ int renderMenu(void)
     g_Console.writeToBuffer(s, ss.str(), 0xF0);
     g_Console.writeToBuffer(q, qq.str(), 0xF0);
 
-    if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= 18) && (g_mouseEvent.mousePosition.X <= 23)) && ((g_mouseEvent.mousePosition.Y >= 10) && (g_mouseEvent.mousePosition.Y <= 13)))
+    if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 4) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 14) && (g_mouseEvent.mousePosition.Y <= 15)))
         return choice = 1;
-    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= 18) && (g_mouseEvent.mousePosition.X <= 23)) && ((g_mouseEvent.mousePosition.Y >= 15) && (g_mouseEvent.mousePosition.Y <= 18)))
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 4) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 16) && (g_mouseEvent.mousePosition.Y <= 17)))
         return choice = 2;
-    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= 18) && (g_mouseEvent.mousePosition.X <= 23)) && ((g_mouseEvent.mousePosition.Y >= 20) && (g_mouseEvent.mousePosition.Y <= 23)))
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 4) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 18) && (g_mouseEvent.mousePosition.Y <= 19)))
         return choice = 3;
 }
 
@@ -131,6 +134,7 @@ void render3(void)
 
 void renderScore(void)
 {
+
 }
 
 void render4(void)
@@ -140,26 +144,36 @@ void render4(void)
     //renderInputEvents();
     renderToScreen();
 }
-std::string name = "";
+int eventCount = 0;
 bool renderName(void)
 {
     bool conti = false;
     COORD a,b;
-    a.X = 10; a.Y = 10;
-    b.X = 7; b.Y = 16;
+    
+    a.X = g_Console.getConsoleSize().X / 2 - 16; a.Y = 10;
+    b.X = g_Console.getConsoleSize().X / 2 - 14; b.Y = 16;
 
-    g_Console.writeToBuffer(a, "Enter Player Name:", 0x0F);
-    g_Console.writeToBuffer(b, "Press 'Enter' to continue", 0x0F);
+    g_Console.writeToBuffer(a, "Enter Player Name (4 letters):", 0x0F);
+    g_Console.writeToBuffer(b, "Press 'Enter'  to continue", 0x0F);
 
     if (g_skKeyEvent[K_ENTER].keyReleased)    
     {
-
-        return true;
+        if (name.length() == 4)
+        {
+            for (unsigned int x = 0; x < 5; ++x)
+            {
+                if (score[x].getName() == "")
+                {
+                    score[x].setName(name);
+                }
+            }
+            return true;
+        }        
     }
     else
     {
         COORD c;
-        c.X = 13;
+        c.X = g_Console.getConsoleSize().X / 2 - 3;
         c.Y = 13;
 
         if (g_skKeyEvent[K_BACK].keyDown)
@@ -167,143 +181,318 @@ bool renderName(void)
             std::string newn = name.substr(0, name.length() - 1);
             name = newn;
         }
-        else if (name.length() == 12)
+        else if (name.length() == 4)
         {
             name = name;
         }
         else if (g_skKeyEvent[K_A].keyReleased)
         {
-            name += "A";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "A";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_B].keyReleased)
         {
-            name += "B";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "B";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_C].keyReleased)
         {
-            name += "C";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "C";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_D].keyReleased)
         {
-            name += "D";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "D";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_E].keyReleased)
         {
-            name += "E";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "E";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_F].keyReleased)
         {
-            name += "F";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "F";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_G].keyReleased)
         {
-            name += "G";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "G";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_H].keyReleased)
         {
-            name += "H";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "H";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_I].keyReleased)
         {
-            name += "I";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "I";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_J].keyReleased)
         {
-            name += "J";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "J";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_K].keyReleased)
         {
-            name += "K";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "K";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_L].keyReleased)
         {
-            name += "L";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "L";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_M].keyReleased)
         {
-            name += "M";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "M";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_N].keyReleased)
         {
-            name += "N";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "N";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_O].keyReleased)
         {
-            name += "O";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "O";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_P].keyReleased)
         {
-            name += "P";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "P";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_Q].keyReleased)
         {
-            name += "Q";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "Q";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_R].keyReleased)
         {
-            name += "R";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "R";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_S].keyReleased)
         {
-            name += "S";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "S";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_T].keyReleased)
         {
-            name += "T";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "T";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_U].keyReleased)
         {
-            name += "U";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "U";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_V].keyReleased)
         {
-            name += "V";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "V";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_W].keyReleased)
         {
-            name += "W";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "W";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_X].keyReleased)
         {
-            name += "X";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "X";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_Y].keyReleased)
         {
-            name += "Y";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "Y";
+                eventCount = 0;
+            }
         }
         else if (g_skKeyEvent[K_Z].keyReleased)
         {
-            name += "Z";
-            //scores.setName(add);
+            eventCount++;
+            if (eventCount == 2)
+            {
+                name += "Z";
+                eventCount = 0;
+            }
         }
-        std::ostringstream cc;
-        cc << name;
-        g_Console.writeToBuffer(c, cc.str(), 0x0F);
+        g_Console.writeToBuffer(c, name, 0x0F);
+    }
+}
+
+void renderUI(void)
+{
+    std::ostringstream ss;
+    COORD c;
+
+    // this part renders the player's name
+    {
+        c.X = 45;
+        c.Y = 2;
+        g_Console.writeToBuffer(c, "PlayerName");
+
+        c.X += 3;
+        c.Y += 1;
+        g_Console.writeToBuffer(c, name);
+
+    }
+
+    // this part outputs the lives
+    {
+        ss.str("");
+        c.X = 47;
+        c.Y = 7;
+        g_Console.writeToBuffer(c, "Lives");
+    }
+
+    // this part outputs the score
+    {
+        ss.str("");
+        c.X = 47;
+        c.Y = 12;
+        g_Console.writeToBuffer(c, "Score");
+    }
+
+    // this part outputs the time
+    {
+        ss.str("");
+        c.X = 47;
+        c.Y = 17;
+        g_Console.writeToBuffer(c, "Timer");
+
+        c.X += 2;
+        c.Y += 1;
+        ss << std::fixed << std::setprecision(0) << g_dElapsedTime;
+        g_Console.writeToBuffer(c, ss.str());
+
+    }
+
+    // this part outputs the powerup being used
+    {
+        ss.str("");
+        c.X = 46;
+        c.Y = 22;
+        g_Console.writeToBuffer(c, "PowerUps");
+    }
+    
+    // this part outputs the UI borders
+    for (unsigned int x = 1; x < 29; ++x)
+    {
+        c.X = 40;
+        c.Y = x;
+        g_Console.writeToBuffer(c, " ", 0x00);
+    }
+    for (unsigned int x = 1; x < 5; ++x)
+    {
+        for (unsigned int y = 40; y < 60; ++y)
+        {
+            c.X = y;
+            c.Y = 5 * x;
+            g_Console.writeToBuffer(c, " ", 0x00);
+        }
     }
 }
 
@@ -563,8 +752,8 @@ void render()
     case S_GAME: renderGame();
         break;
     }
-    renderFramerate();      // renders debug information, frame rate, elapsed time, etc
-    renderInputEvents();    // renders status of input events
+    // renderFramerate();      // renders debug information, frame rate, elapsed time, etc
+    // renderInputEvents();    // renders status of input events
     renderToScreen();       // dump the contents of the buffer to the screen, one frame worth of game
 }
 
@@ -598,18 +787,19 @@ void renderGame()
 {
     renderMap();        // renders the map to the buffer first
     renderCharacter();  // renders the character into the buffer
+    renderUI();
 }
 
 void renderMap()
 {
     // Set up sample colours, and output shadings
     const WORD colors[] = {
-        0x1A, 0x2B, 0x3C, 0x4D, 0x5E, 0x6F,
+        0x1A, 0x2B, 0x3C, 0x00, 0x5E, 0x6F,
         0xA1, 0xB2, 0xC3, 0xD4, 0xE5, 0xF6
     };
 
     COORD c;
-    for (int row = 0; row < 40; ++row)
+    for (int row = 0; row < 60; ++row)
     {
         for (int col = 0; col < 30; ++col)
         {
@@ -619,7 +809,7 @@ void renderMap()
                 c.Y = col;
                 colour(colors[1]);
             }
-            else if (row == 0 || row == 39)
+            else if (row == 0 || row == 59)
             {
                 c.X = row;
                 c.Y = col;
