@@ -1,6 +1,9 @@
 #include "scores.h"
 #include <string>
 
+// most likely, the score and name will only be taken if the player either dies, or wins
+// not if they leave mid-game.
+
 scores::scores()
 {
 	name = "";

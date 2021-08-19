@@ -22,6 +22,7 @@ Console g_Console(60, 30, "SP1 Framework");
 
 std::string name = ""; // takes in user input name
 scores score[5]; // no of scores that can be kept
+int eventCount = 0; // mitigates the problem of keypresses being pressed twice
 
 //--------------------------------------------------------------
 // Purpose  : Initialisation function
@@ -144,18 +145,23 @@ void render4(void)
     //renderInputEvents();
     renderToScreen();
 }
-int eventCount = 0;
-bool renderName(void)
+
+int renderName(void)
 {
     bool conti = false;
-    COORD a,b;
-    
+    COORD a,b,c;
+
     a.X = g_Console.getConsoleSize().X / 2 - 16; a.Y = 10;
     b.X = g_Console.getConsoleSize().X / 2 - 14; b.Y = 16;
-
+    c.X = g_Console.getConsoleSize().X / 2 - 12; c.Y = 18;
     g_Console.writeToBuffer(a, "Enter Player Name (4 letters):", 0x0F);
     g_Console.writeToBuffer(b, "Press 'Enter'  to continue", 0x0F);
+    g_Console.writeToBuffer(c, "Press 'Esc' to go back", 0x0F);
 
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+    {
+        return 0;
+    }
     if (g_skKeyEvent[K_ENTER].keyReleased)    
     {
         if (name.length() == 4)
@@ -167,7 +173,7 @@ bool renderName(void)
                     score[x].setName(name);
                 }
             }
-            return true;
+            return 1;
         }        
     }
     else
@@ -477,7 +483,7 @@ void renderUI(void)
         c.Y = 22;
         g_Console.writeToBuffer(c, "PowerUps");
     }
-    
+
     // this part outputs the UI borders
     for (unsigned int x = 1; x < 29; ++x)
     {
@@ -493,6 +499,24 @@ void renderUI(void)
             c.Y = 5 * x;
             g_Console.writeToBuffer(c, " ", 0x00);
         }
+    }
+    for (unsigned int x = 1; x < 5; ++x)
+    {
+        for (unsigned int y = 40; y < 60; ++y)
+        {
+            c.X = y;
+            c.Y = 25 + x;
+            g_Console.writeToBuffer(c, " ", 0x00);
+        }
+    }
+    
+    {
+        c.X = 44;
+        c.Y = 27;
+        g_Console.writeToBuffer(c, "Press  'Esc'");
+        c.X += 2;
+        c.Y += 1;
+        g_Console.writeToBuffer(c, "to quit");
     }
 }
 
@@ -690,7 +714,7 @@ void splashScreenWait()    // waits for time to pass in splash screen
 
 void updateGame()       // gameplay logic
 {
-    processUserInput(); // checks if you should change states or do something else with the game, e.g. pause, exit
+    //processUserInput(); // checks if you should change states or do something else with the game, e.g. pause, exit
     moveCharacter();    // moves the character, collision detection, physics, etc
                         // sound can be played here too.
 }
@@ -727,12 +751,12 @@ void moveCharacter()
 
    
 }
-void processUserInput()
-{
-    // quits the game if player hits the escape key
-    if (g_skKeyEvent[K_ESCAPE].keyReleased)
-        g_bQuitGame = true;    
-}
+//void processUserInput()
+//{
+//    // quits the game if player hits the escape key
+//    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+//        g_bQuitGame = true;    
+//}
 
 //--------------------------------------------------------------
 // Purpose  : Render function is to update the console screen
@@ -783,11 +807,13 @@ void renderSplashScreen()  // renders the splash screen
     g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x09);
 }
 
-void renderGame()
+int renderGame()
 {
     renderMap();        // renders the map to the buffer first
     renderCharacter();  // renders the character into the buffer
     renderUI();
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+        return 0;
 }
 
 void renderMap()

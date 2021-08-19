@@ -71,16 +71,16 @@ int renderMenu(void); // will be inside render3
 void render3(void); // for rendering score : functions for scores
 void renderScore(void); // will be inside render3
 void render4(void); // for rendering the page for player to input name
-bool renderName(void); // will be inside render4 : functions for name page
+int renderName(void); // will be inside render4 : functions for name page
 void renderUI(void); // renders out the UI (name, time, etc)
 
 void splashScreenWait();    // waits for time to pass in splash screen
 void updateGame();          // gameplay logic
 void moveCharacter();       // moves the character, collision detection, physics, etc
-void processUserInput();    // checks if you should change states or do something else with the game, e.g. pause, exit
+// void processUserInput();    // checks if you should change states or do something else with the game, e.g. pause, exit
 void clearScreen();         // clears the current screen and draw from scratch 
 void renderSplashScreen();  // renders the splash screen
-void renderGame();          // renders the game stuff
+int renderGame();          // renders the game stuff
 void renderMap();           // renders the map to the buffer first
 void renderCharacter();     // renders the character into the buffer
 void renderFramerate();     // renders debug information, frame rate, elapsed time, etc

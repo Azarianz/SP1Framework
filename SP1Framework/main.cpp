@@ -57,14 +57,16 @@ void mainLoop( void )
                 render4();
                 update2(g_Timer.getElapsedTime());
                 g_Timer.waitUntil(gc_uFrameTime);
-                if (renderName() == true)
+                if ((renderName() == 1) || (renderName() == 0))
                     break;
             }
-            
             resetTimer();
             g_Timer.startTimer();
-            while (!gO)
+            while (true)
             {
+                if (renderName() == 0)
+                    break;
+                else
                 /*int placing = 0;
                 for (unsigned int x = 0; x < 5; ++x)
                 {
@@ -76,13 +78,15 @@ void mainLoop( void )
                 render();
                 update(g_Timer.getElapsedTime());
                 g_Timer.waitUntil(gc_uFrameTime);
+                if (renderGame() == 0) // can change this into a gameover scene
+                    break;
             }
         }
         else if (renderMenu() == 2)
         {
             resetTimer();
             g_Timer.startTimer();
-            while (!gO)
+            while (true)
             {
                 getInput();
                 render3();
