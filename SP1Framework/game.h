@@ -72,10 +72,12 @@ void gameTitle(void); // prints out the game title
 void render2(void); // for rendering menu : functions for menu
 int renderMenu(void); // will be inside render3
 void render3(void); // for rendering score : functions for scores
-void renderScore(void); // will be inside render3
+bool renderScore(void); // will be inside render3
 void render4(void); // for rendering the page for player to input name
 int renderName(void); // will be inside render4 : functions for name page
 void renderUI(void); // renders out the UI (name, time, etc)
+void resetName(void); // resets the name input : used when user exits name menu/game and win/lose
+void setInfo(void); // initialises the into into a score class
 
 void splashScreenWait();    // waits for time to pass in splash screen
 void updateGame();          // gameplay logic

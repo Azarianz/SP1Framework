@@ -7,8 +7,8 @@ private:
 	int score;
 public:
 	scores(void);
-	void getScore(void);
-	int setScore(void);
+	void setScore(void);
+	int getScore(void);
 	std::string getName(void);
 	void setName(std::string x);
 };

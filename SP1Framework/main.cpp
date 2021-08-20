@@ -39,7 +39,7 @@ int main( void )
 //--------------------------------------------------------------
 void mainLoop( void )
 {
-    //scores* ptr[5] = { nullptr,nullptr, nullptr, nullptr, nullptr };
+    //scores score    [5];
     g_Timer.startTimer();    // Start timer to calculate how long it takes to render this frame
     while (!g_bQuitGame)      // run this loop until user wants to quit 
     {   
@@ -67,19 +67,16 @@ void mainLoop( void )
                 if (renderName() == 0)
                     break;
                 else
-                /*int placing = 0;
-                for (unsigned int x = 0; x < 5; ++x)
-                {
-                    if (ptr[x] == nullptr)
-                        ptr[x] = new scores;
-                    placing = x;
-                }*/
-                getInput();
-                render();
-                update(g_Timer.getElapsedTime());
-                g_Timer.waitUntil(gc_uFrameTime);
-                if (renderGame() == 0) // can change this into a gameover scene
-                    break;
+                    getInput();
+                    render();
+                    update(g_Timer.getElapsedTime());
+                    g_Timer.waitUntil(gc_uFrameTime);
+                    if (renderGame() == 0) // can change this into a gameover scene
+                    {
+                        setInfo();
+                        resetName();
+                        break;
+                    }
             }
         }
         else if (renderMenu() == 2)
@@ -90,8 +87,10 @@ void mainLoop( void )
             {
                 getInput();
                 render3();
-                update(g_Timer.getElapsedTime());
+                update2(g_Timer.getElapsedTime());
                 g_Timer.waitUntil(gc_uFrameTime);
+                if (renderScore() == false)
+                    break;
             }
         }
         else if (renderMenu() == 3)

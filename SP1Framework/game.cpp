@@ -1,4 +1,4 @@
-// This is the main file for the game logic and function
+﻿// This is the main file for the game logic and function
 //
 //
 #include "game.h"
@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <sstream>
 #include "scores.h"
+#include <algorithm>
 
 double  g_dElapsedTime;
 double  g_dDeltaTime;
@@ -22,6 +23,7 @@ Console g_Console(60, 30, "SP1 Framework");
 
 std::string name = ""; // takes in user input name
 scores score[5]; // no of scores that can be kept
+int eventCount = 0; // mitigates the problem of keypresses being pressed twice
 
 //--------------------------------------------------------------
 // Purpose  : Initialisation function
@@ -108,34 +110,38 @@ void resetTimer(void)
 void gameTitle(void)
 {
     COORD c;
-    c.X = 6;
+    c.X = 2;
     c.Y = 3;
-    g_Console.writeToBuffer(c, "  <><>     <><><>     <><>      <><>    <><><><>", 0x0F);
+    g_Console.writeToBuffer(c, "  d8888b   888888b      d8888b      d8888b    8888888888", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "<>    <>  <>    <>  <>    <>  <>    <>  <>", 0x0F);
+    g_Console.writeToBuffer(c, "d88P  Y88b 88888888b   d888888b   d88888888b  8888888888", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "<>        <>    <>  <>    <>  <>        <>", 0x0F);
+    g_Console.writeToBuffer(c, "Y88b       888    88b d88    88b 888P    Y8P  888", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "  <><>    <><><>    <><<>><>  <>        <><><><>", 0x0F);
+    g_Console.writeToBuffer(c, "  Y88b     888    88P 888    888 88P          8888888888", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "      <>  <>        <>    <>  <>        <>", 0x0F);
+    g_Console.writeToBuffer(c, "     Y88b  88888888P  8888888888 88b          8888888888", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "<>    <>  <>        <>    <>  <>    <>  <>", 0x0F);
+    g_Console.writeToBuffer(c, "       888 8888888P   8888888888 888b    d8b  888", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "  <><>    <>        <>    <>    <><>    <><><><>", 0x0F);
+    g_Console.writeToBuffer(c, "Y88b  d88P 888        888    888  Y8888888P   8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "  Y8888P   888        888    888    Y8888P    8888888888", 0x0F);
 
     c.Y += 2;
-    g_Console.writeToBuffer(c, "       <>    <>    <>    <><>     <><><>", 0x0F);
+    g_Console.writeToBuffer(c, "    8888    d888b    8888    d88888b    88888888b", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "       <>    <>    <>  <>    <>   <>    <>", 0x0F);
+    g_Console.writeToBuffer(c, "    8888    88888    8888   d8888888b   888888888b", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "       <>    <>    <>  <>    <>   <>    <>", 0x0F);
+    g_Console.writeToBuffer(c, "    Y88p   d88888b   d88P  d88     88b  888    888p", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "       <>    <>    <>  <><<>><>   <><><>", 0x0F);
+    g_Console.writeToBuffer(c, "     Y88bd888888888bd88P   88888888888  888    888P", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "       <>    <>    <>  <>    <>   <>  <>", 0x0F);
+    g_Console.writeToBuffer(c, "      Y8888P 888 Y8888P    88888888888  888888888P", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "         <><>  <><>    <>    <>   <>    <>", 0x0F);
+    g_Console.writeToBuffer(c, "       Y88P  888  Y88P     888     888  888888888b", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "        qp    8    qp      888     888  888    Y88b", 0x0F);
 }
 
 void render2(void) // for rendering the menu
@@ -155,23 +161,23 @@ int renderMenu(void)
 
     gameTitle();
 
-    b.X = g_Console.getConsoleSize().X / 2 - 3; b.Y = 20;
-    s.X = g_Console.getConsoleSize().X / 2 - 3; s.Y = 22;
-    q.X = g_Console.getConsoleSize().X / 2 - 3; q.Y = 24;
+    b.X = g_Console.getConsoleSize().X / 2 - 3; b.Y = 22;
+    s.X = g_Console.getConsoleSize().X / 2 - 3; s.Y = 24;
+    q.X = g_Console.getConsoleSize().X / 2 - 3; q.Y = 26;
 
     bb << "START";
-    ss << "SCORE";
+    ss << "SCORES";
     qq << "QUIT";
 
     g_Console.writeToBuffer(b, bb.str(), 0x0F);
     g_Console.writeToBuffer(s, ss.str(), 0x0F);
     g_Console.writeToBuffer(q, qq.str(), 0x0F);
 
-    if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 19) && (g_mouseEvent.mousePosition.Y <= 20)))
+    if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 21) && (g_mouseEvent.mousePosition.Y <= 22)))
         return choice = 1;
-    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 21) && (g_mouseEvent.mousePosition.Y <= 22)))
-        return choice = 2;
     else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 23) && (g_mouseEvent.mousePosition.Y <= 24)))
+        return choice = 2;
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 25) && (g_mouseEvent.mousePosition.Y <= 26)))
         return choice = 3;
 }
 
@@ -179,13 +185,111 @@ void render3(void)
 {
     clearScreen();
     consoleBG();
-    //renderScore();
+    renderScore();
     renderToScreen();
 }
 
-void renderScore(void)
+bool renderScore(void)
 {
+    COORD c;
+    std::ostringstream ss;
 
+    c.X = g_Console.getConsoleSize().X / 2 - 7;
+    c.Y = g_Console.getConsoleSize().Y / 4 - 2;
+
+    g_Console.writeToBuffer(c, "LEADERBOARD");
+    c.X -= 4;
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "RANK     NAME  SCORE");
+    c.X += 1;
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "1");
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "2");
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "3");
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "4");
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "5");
+
+    c.X -= 4;
+    c.Y += 6;
+    g_Console.writeToBuffer(c, "Press Esc to return to menu");
+
+    
+
+    std::string arr2[5];
+    int arr[] = { score[0].getScore(), score[1].getScore(), score[2].getScore(), 
+                  score[3].getScore(), score[4].getScore() };
+    int n = sizeof(arr) / sizeof(arr[0]);
+    
+    std::sort(arr, arr + 5, std::greater<int>());
+    for (unsigned int x = 0; x < 5; ++x)
+        {
+            for (unsigned int y = 0; y < 5; ++y)
+            {
+                if (arr[x] == score[y].getScore())
+                {
+                    arr2[x] = score[y].getName();
+                }
+            }
+        }
+    
+    c.Y = g_Console.getConsoleSize().Y / 4;
+    for (int i = 0; i < 5; ++i)
+    {
+        c.X = g_Console.getConsoleSize().X / 2 - 2;
+        
+        if (arr2[i] == "")
+        {
+            c.X += 5;
+            c.Y += 2;
+            ss.str("");
+            ss << arr2[i] << "   " << arr[i];
+        g_Console.writeToBuffer(c, ss.str());
+        }
+        else 
+        {
+            c.Y += 2;
+            ss.str("");
+            ss << arr2[i] << "   " << arr[i];
+            g_Console.writeToBuffer(c, ss.str());
+        }
+        
+    }
+
+    
+    /*c.Y += 2;
+    ss.str("");
+    ss << score[0].getName() << "   " << score[0].getScore();
+    g_Console.writeToBuffer(c, ss.str());
+    
+    c.Y += 2;
+    ss.str("");
+    ss << score[1].getName() << "   " << score[1].getScore();
+    g_Console.writeToBuffer(c, ss.str());
+
+    c.Y += 2;
+    ss.str("");
+    ss << score[2].getName() << "   " << score[2].getScore();
+    g_Console.writeToBuffer(c, ss.str());
+
+    c.Y += 2;
+    ss.str("");
+    ss << score[3].getName() << "   " << score[3].getScore();
+    g_Console.writeToBuffer(c, ss.str());
+
+    c.Y += 2;
+    ss.str("");
+    ss << score[4].getName() << "   " << score[4].getScore();
+    g_Console.writeToBuffer(c, ss.str());*/
+    
+
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+    {
+        return false;
+    }
 }
 
 void render4(void)
@@ -197,8 +301,6 @@ void render4(void)
     renderToScreen();
 }
 
-int eventCount = 0; // mitigates the problem of keypresses being pressed twice
-
 int renderName(void)
 {
     bool conti = false;
@@ -207,28 +309,18 @@ int renderName(void)
     a.X = g_Console.getConsoleSize().X / 2 - 16; a.Y = 10;
     b.X = g_Console.getConsoleSize().X / 2 - 14; b.Y = 16;
     c.X = g_Console.getConsoleSize().X / 2 - 12; c.Y = 18;
-    g_Console.writeToBuffer(a, "Enter Player Name (4 letters):", 0x0F);
+    g_Console.writeToBuffer(a, "Enter Player  Name (5 letters):", 0x0F);
     g_Console.writeToBuffer(b, "Press 'Enter'  to continue", 0x0F);
     g_Console.writeToBuffer(c, "Press 'Esc' to go back", 0x0F);
 
     if (g_skKeyEvent[K_ESCAPE].keyReleased)
     {
+        resetName();
         return 0;
     }
-
-    if (g_skKeyEvent[K_ENTER].keyReleased)
+    else if ((g_skKeyEvent[K_ENTER].keyReleased) && (name.length() == 5))
     {
-        if (name.length() == 4)
-        {
-            for (unsigned int x = 0; x < 5; ++x)
-            {
-                if (score[x].getName() == "")
-                {
-                    score[x].setName(name);
-                }
-            }
-            return 1;
-        }        
+        return 1;        
     }
     else
     {
@@ -249,7 +341,7 @@ int renderName(void)
                 eventCount = 0;
             }
         }
-        else if (name.length() == 4)
+        else if (name.length() == 5)
         {
             name = name;
         }
@@ -579,7 +671,7 @@ void renderUI(void)
     {
         c.X = 45;
         c.Y = 2;
-        g_Console.writeToBuffer(c, "PlayerName");
+        g_Console.writeToBuffer(c, "Player Name");
 
         c.X += 3;
         c.Y += 1;
@@ -658,6 +750,24 @@ void renderUI(void)
         c.X += 2;
         c.Y += 1;
         g_Console.writeToBuffer(c, "to quit", 0xF0);
+    }
+}
+
+void resetName(void)
+{
+    name = "";
+}
+
+void setInfo(void)
+{
+    for (unsigned int x = 0; x < 5; ++x)
+    {
+        if (score[x].getName() == "")
+        {
+            score[x].setName(name);
+            score[x].setScore();
+            break;
+        }
     }
 }
 
@@ -742,7 +852,6 @@ void mouseHandler(const MOUSE_EVENT_RECORD& mouseEvent)
 // Input    : const KEY_EVENT_RECORD& keyboardEvent
 // Output   : void
 //--------------------------------------------------------------
-
 
 void gameplayKBHandler(const KEY_EVENT_RECORD& keyboardEvent)
 {
@@ -889,6 +998,7 @@ void moveCharacter()
 
    
 }
+
 //void processUserInput()
 //{
 //    // quits the game if player hits the escape key
