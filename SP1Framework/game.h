@@ -66,6 +66,7 @@ void splashScreenWait2(void);
 
 void resetTimer(void); // resets the timer and scrn state for when the user enters a new game from menu
 
+void gameTitle(void); // prints out the game title
 void render2(void); // for rendering menu : functions for menu
 int renderMenu(void); // will be inside render3
 void render3(void); // for rendering score : functions for scores

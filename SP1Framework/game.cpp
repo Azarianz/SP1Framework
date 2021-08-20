@@ -22,7 +22,6 @@ Console g_Console(60, 30, "SP1 Framework");
 
 std::string name = ""; // takes in user input name
 scores score[5]; // no of scores that can be kept
-int eventCount = 0; // mitigates the problem of keypresses being pressed twice
 
 //--------------------------------------------------------------
 // Purpose  : Initialisation function
@@ -92,6 +91,39 @@ void resetTimer(void)
     g_eGameState = S_SPLASHSCREEN;
 }
 
+void gameTitle(void)
+{
+    COORD c;
+    c.X = 6;
+    c.Y = 3;
+    g_Console.writeToBuffer(c, "  <><>     <><><>     <><>      <><>    <><><><>", 0x001F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "<>    <>  <>    <>  <>    <>  <>    <>  <>", 0x001F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "<>        <>    <>  <>    <>  <>        <>", 0x001F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "  <><>    <><><>    <><<>><>  <>        <><><><>", 0x001F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "      <>  <>        <>    <>  <>        <>", 0x001F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "<>    <>  <>        <>    <>  <>    <>  <>", 0x001F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "  <><>    <>        <>    <>    <><>    <><><><>", 0x001F);
+
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "       <>    <>    <>    <><>     <><><>", 0x001F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "       <>    <>    <>  <>    <>   <>    <>", 0x001F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "       <>    <>    <>  <>    <>   <>    <>", 0x001F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "       <>    <>    <>  <><<>><>   <><><>", 0x001F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "       <>    <>    <>  <>    <>   <>  <>", 0x001F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "         <><>  <><>    <>    <>   <>    <>", 0x001F);
+}
+
 void render2(void) // for rendering the menu
 {
     clearScreen();
@@ -106,9 +138,11 @@ int renderMenu(void)
     COORD b, s, q, x, y, z;
     std::ostringstream bb, ss, qq, xx, yy, zz;
 
-    b.X = g_Console.getConsoleSize().X / 2 - 4; b.Y = 15;
-    s.X = g_Console.getConsoleSize().X / 2 - 4; s.Y = 17;
-    q.X = g_Console.getConsoleSize().X / 2 - 4; q.Y = 19;
+    gameTitle();
+
+    b.X = g_Console.getConsoleSize().X / 2 - 4; b.Y = 20;
+    s.X = g_Console.getConsoleSize().X / 2 - 4; s.Y = 22;
+    q.X = g_Console.getConsoleSize().X / 2 - 4; q.Y = 24;
 
     bb << "START";
     ss << "SCORE";
@@ -118,11 +152,11 @@ int renderMenu(void)
     g_Console.writeToBuffer(s, ss.str(), 0xF0);
     g_Console.writeToBuffer(q, qq.str(), 0xF0);
 
-    if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 4) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 14) && (g_mouseEvent.mousePosition.Y <= 15)))
+    if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 4) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 19) && (g_mouseEvent.mousePosition.Y <= 20)))
         return choice = 1;
-    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 4) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 16) && (g_mouseEvent.mousePosition.Y <= 17)))
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 4) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 21) && (g_mouseEvent.mousePosition.Y <= 22)))
         return choice = 2;
-    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 4) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 18) && (g_mouseEvent.mousePosition.Y <= 19)))
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 4) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 23) && (g_mouseEvent.mousePosition.Y <= 24)))
         return choice = 3;
 }
 
@@ -146,6 +180,8 @@ void render4(void)
     renderToScreen();
 }
 
+int eventCount = 0; // mitigates the problem of keypresses being pressed twice
+
 int renderName(void)
 {
     bool conti = false;
@@ -162,6 +198,7 @@ int renderName(void)
     {
         return 0;
     }
+
     if (g_skKeyEvent[K_ENTER].keyReleased)    
     {
         if (name.length() == 4)
@@ -184,8 +221,13 @@ int renderName(void)
 
         if (g_skKeyEvent[K_BACK].keyDown)
         {
-            std::string newn = name.substr(0, name.length() - 1);
-            name = newn;
+            ++eventCount;
+            if (eventCount == 2)
+            {
+                std::string newn = name.substr(0, name.length() - 1);
+                name = newn;
+                eventCount = 0;
+            }
         }
         else if (name.length() == 4)
         {
@@ -193,7 +235,7 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_A].keyReleased)
         {
-            eventCount++;
+            ++eventCount;
             if (eventCount == 2)
             {
                 name += "A";
