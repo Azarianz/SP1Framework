@@ -64,6 +64,20 @@ void shutdown( void )
     g_Console.clearBuffer();
 }
 
+void consoleBG(void)
+{
+    COORD c;
+    for (unsigned int rows = 0; rows < 60; ++rows)
+    {
+        for (unsigned int cols = 0; cols < 30; ++cols)
+        {
+            c.X = rows;
+            c.Y = cols;
+            g_Console.writeToBuffer(c, " ", 0x00);
+        }
+    }
+}
+
 void update2(double dt)
 {
     // get the delta time
@@ -96,37 +110,38 @@ void gameTitle(void)
     COORD c;
     c.X = 6;
     c.Y = 3;
-    g_Console.writeToBuffer(c, "  <><>     <><><>     <><>      <><>    <><><><>", 0x001F);
+    g_Console.writeToBuffer(c, "  <><>     <><><>     <><>      <><>    <><><><>", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "<>    <>  <>    <>  <>    <>  <>    <>  <>", 0x001F);
+    g_Console.writeToBuffer(c, "<>    <>  <>    <>  <>    <>  <>    <>  <>", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "<>        <>    <>  <>    <>  <>        <>", 0x001F);
+    g_Console.writeToBuffer(c, "<>        <>    <>  <>    <>  <>        <>", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "  <><>    <><><>    <><<>><>  <>        <><><><>", 0x001F);
+    g_Console.writeToBuffer(c, "  <><>    <><><>    <><<>><>  <>        <><><><>", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "      <>  <>        <>    <>  <>        <>", 0x001F);
+    g_Console.writeToBuffer(c, "      <>  <>        <>    <>  <>        <>", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "<>    <>  <>        <>    <>  <>    <>  <>", 0x001F);
+    g_Console.writeToBuffer(c, "<>    <>  <>        <>    <>  <>    <>  <>", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "  <><>    <>        <>    <>    <><>    <><><><>", 0x001F);
+    g_Console.writeToBuffer(c, "  <><>    <>        <>    <>    <><>    <><><><>", 0x0F);
 
     c.Y += 2;
-    g_Console.writeToBuffer(c, "       <>    <>    <>    <><>     <><><>", 0x001F);
+    g_Console.writeToBuffer(c, "       <>    <>    <>    <><>     <><><>", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "       <>    <>    <>  <>    <>   <>    <>", 0x001F);
+    g_Console.writeToBuffer(c, "       <>    <>    <>  <>    <>   <>    <>", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "       <>    <>    <>  <>    <>   <>    <>", 0x001F);
+    g_Console.writeToBuffer(c, "       <>    <>    <>  <>    <>   <>    <>", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "       <>    <>    <>  <><<>><>   <><><>", 0x001F);
+    g_Console.writeToBuffer(c, "       <>    <>    <>  <><<>><>   <><><>", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "       <>    <>    <>  <>    <>   <>  <>", 0x001F);
+    g_Console.writeToBuffer(c, "       <>    <>    <>  <>    <>   <>  <>", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "         <><>  <><>    <>    <>   <>    <>", 0x001F);
+    g_Console.writeToBuffer(c, "         <><>  <><>    <>    <>   <>    <>", 0x0F);
 }
 
 void render2(void) // for rendering the menu
 {
     clearScreen();
+    consoleBG();
     renderMenu();
     //renderInputEvents();
     renderToScreen();
@@ -140,29 +155,30 @@ int renderMenu(void)
 
     gameTitle();
 
-    b.X = g_Console.getConsoleSize().X / 2 - 4; b.Y = 20;
-    s.X = g_Console.getConsoleSize().X / 2 - 4; s.Y = 22;
-    q.X = g_Console.getConsoleSize().X / 2 - 4; q.Y = 24;
+    b.X = g_Console.getConsoleSize().X / 2 - 3; b.Y = 20;
+    s.X = g_Console.getConsoleSize().X / 2 - 3; s.Y = 22;
+    q.X = g_Console.getConsoleSize().X / 2 - 3; q.Y = 24;
 
     bb << "START";
     ss << "SCORE";
     qq << "QUIT";
 
-    g_Console.writeToBuffer(b, bb.str(), 0xF0);
-    g_Console.writeToBuffer(s, ss.str(), 0xF0);
-    g_Console.writeToBuffer(q, qq.str(), 0xF0);
+    g_Console.writeToBuffer(b, bb.str(), 0x0F);
+    g_Console.writeToBuffer(s, ss.str(), 0x0F);
+    g_Console.writeToBuffer(q, qq.str(), 0x0F);
 
-    if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 4) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 19) && (g_mouseEvent.mousePosition.Y <= 20)))
+    if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 19) && (g_mouseEvent.mousePosition.Y <= 20)))
         return choice = 1;
-    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 4) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 21) && (g_mouseEvent.mousePosition.Y <= 22)))
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 21) && (g_mouseEvent.mousePosition.Y <= 22)))
         return choice = 2;
-    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 4) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 23) && (g_mouseEvent.mousePosition.Y <= 24)))
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 23) && (g_mouseEvent.mousePosition.Y <= 24)))
         return choice = 3;
 }
 
 void render3(void)
 {
     clearScreen();
+    consoleBG();
     //renderScore();
     renderToScreen();
 }
@@ -175,6 +191,7 @@ void renderScore(void)
 void render4(void)
 {
     clearScreen();
+    consoleBG();
     renderName();
     //renderInputEvents();
     renderToScreen();
@@ -199,7 +216,7 @@ int renderName(void)
         return 0;
     }
 
-    if (g_skKeyEvent[K_ENTER].keyReleased)    
+    if (g_skKeyEvent[K_ENTER].keyReleased)
     {
         if (name.length() == 4)
         {
@@ -221,8 +238,11 @@ int renderName(void)
 
         if (g_skKeyEvent[K_BACK].keyDown)
         {
-            ++eventCount;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 std::string newn = name.substr(0, name.length() - 1);
                 name = newn;
@@ -235,8 +255,12 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_A].keyReleased)
         {
-            ++eventCount;
-            if (eventCount == 2)
+            
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "A";
                 eventCount = 0;
@@ -244,8 +268,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_B].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "B";
                 eventCount = 0;
@@ -253,8 +280,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_C].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "C";
                 eventCount = 0;
@@ -262,8 +292,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_D].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "D";
                 eventCount = 0;
@@ -271,8 +304,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_E].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "E";
                 eventCount = 0;
@@ -280,8 +316,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_F].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "F";
                 eventCount = 0;
@@ -289,8 +328,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_G].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "G";
                 eventCount = 0;
@@ -298,8 +340,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_H].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "H";
                 eventCount = 0;
@@ -307,8 +352,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_I].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "I";
                 eventCount = 0;
@@ -316,8 +364,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_J].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "J";
                 eventCount = 0;
@@ -325,8 +376,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_K].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "K";
                 eventCount = 0;
@@ -334,8 +388,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_L].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "L";
                 eventCount = 0;
@@ -343,8 +400,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_M].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "M";
                 eventCount = 0;
@@ -352,8 +412,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_N].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "N";
                 eventCount = 0;
@@ -361,8 +424,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_O].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "O";
                 eventCount = 0;
@@ -370,8 +436,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_P].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "P";
                 eventCount = 0;
@@ -379,8 +448,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_Q].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "Q";
                 eventCount = 0;
@@ -388,8 +460,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_R].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "R";
                 eventCount = 0;
@@ -397,8 +472,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_S].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "S";
                 eventCount = 0;
@@ -406,8 +484,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_T].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "T";
                 eventCount = 0;
@@ -415,8 +496,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_U].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "U";
                 eventCount = 0;
@@ -424,8 +508,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_V].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "V";
                 eventCount = 0;
@@ -433,8 +520,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_W].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "W";
                 eventCount = 0;
@@ -442,8 +532,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_X].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "X";
                 eventCount = 0;
@@ -451,8 +544,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_Y].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "Y";
                 eventCount = 0;
@@ -460,8 +556,11 @@ int renderName(void)
         }
         else if (g_skKeyEvent[K_Z].keyReleased)
         {
-            eventCount++;
-            if (eventCount == 2)
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
             {
                 name += "Z";
                 eventCount = 0;
@@ -507,11 +606,11 @@ void renderUI(void)
     // this part outputs the time
     {
         ss.str("");
-        c.X = 47;
+        c.X = 48;
         c.Y = 17;
-        g_Console.writeToBuffer(c, "Timer");
+        g_Console.writeToBuffer(c, "Time");
 
-        c.X += 2;
+        c.X += 1;
         c.Y += 1;
         ss << std::fixed << std::setprecision(0) << g_dElapsedTime;
         g_Console.writeToBuffer(c, ss.str());
@@ -531,7 +630,7 @@ void renderUI(void)
     {
         c.X = 40;
         c.Y = x;
-        g_Console.writeToBuffer(c, " ", 0x00);
+        g_Console.writeToBuffer(c, " ", 0xF0);
     }
     for (unsigned int x = 1; x < 5; ++x)
     {
@@ -539,7 +638,7 @@ void renderUI(void)
         {
             c.X = y;
             c.Y = 5 * x;
-            g_Console.writeToBuffer(c, " ", 0x00);
+            g_Console.writeToBuffer(c, " ", 0xF0);
         }
     }
     for (unsigned int x = 1; x < 5; ++x)
@@ -548,17 +647,17 @@ void renderUI(void)
         {
             c.X = y;
             c.Y = 25 + x;
-            g_Console.writeToBuffer(c, " ", 0x00);
+            g_Console.writeToBuffer(c, " ", 0xF0);
         }
     }
     
     {
         c.X = 44;
         c.Y = 27;
-        g_Console.writeToBuffer(c, "Press  'Esc'");
+        g_Console.writeToBuffer(c, "Press  'Esc'", 0xF0);
         c.X += 2;
         c.Y += 1;
-        g_Console.writeToBuffer(c, "to quit");
+        g_Console.writeToBuffer(c, "to quit", 0xF0);
     }
 }
 
@@ -745,9 +844,6 @@ void update(double dt)
     }
 }
 
-
-
-
 void splashScreenWait()    // waits for time to pass in splash screen
 {
     if (g_dElapsedTime > 3.0) // wait for 3 seconds to switch to game mode, else do nothing
@@ -811,6 +907,7 @@ void moveCharacter()
 void render()
 {
     clearScreen();      // clears the current screen and draw from scratch 
+    consoleBG();
     switch (g_eGameState)
     {
     case S_SPLASHSCREEN: renderSplashScreen();
@@ -840,13 +937,13 @@ void renderSplashScreen()  // renders the splash screen
     COORD c = g_Console.getConsoleSize();
     c.Y /= 3;
     c.X = c.X / 2 - 16;
-    g_Console.writeToBuffer(c, "The game will start in 3 seconds", 0x03);
+    g_Console.writeToBuffer(c, "The game will start in 3 seconds", 0x0F);
     c.Y += 2;
     c.X = g_Console.getConsoleSize().X / 2 - 12;
-    g_Console.writeToBuffer(c, "Use the Arrow keys to move", 0x09);
+    g_Console.writeToBuffer(c, "Use the Arrow keys to move", 0x0F);
     c.Y += 2;
     c.X = g_Console.getConsoleSize().X / 2 - 9;
-    g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x09);
+    g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x0F);
 }
 
 int renderGame()
@@ -862,7 +959,7 @@ void renderMap()
 {
     // Set up sample colours, and output shadings
     const WORD colors[] = {
-        0x1A, 0x2B, 0x3C, 0x00, 0x5E, 0x6F,
+        0x1A, 0x2B, 0x3C, 0xF0, 0x5E, 0x6F,
         0xA1, 0xB2, 0xC3, 0xD4, 0xE5, 0xF6
     };
 
@@ -899,8 +996,6 @@ void renderCharacter()
     }
     g_Console.writeToBuffer(g_sChar.m_cLocation, (char)3, charColor);
 }
-
-
 
 void renderFramerate()
 {
@@ -1020,6 +1115,3 @@ void renderInputEvents()
     }
     
 }
-
-
-

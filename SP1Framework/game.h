@@ -61,6 +61,8 @@ void update      ( double dt ); // update the game and the state of the game
 void render      ( void );      // renders the current state of the game to the console
 void shutdown    ( void );      // do clean up, free memory
 
+void consoleBG(void); // this changes the console color
+
 void update2(double dt); //zero waiting time for menu, name input, and score page
 void splashScreenWait2(void);
 
