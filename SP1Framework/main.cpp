@@ -40,9 +40,10 @@ int main( void )
 void mainLoop( void )
 {
     //scores score    [5];
+    outScore();
     g_Timer.startTimer();    // Start timer to calculate how long it takes to render this frame
     while (!g_bQuitGame)      // run this loop until user wants to quit 
-    {   
+    {       
         update2(g_Timer.getElapsedTime());
         getInput();
         render2();
@@ -71,8 +72,22 @@ void mainLoop( void )
                     render();
                     update(g_Timer.getElapsedTime());
                     g_Timer.waitUntil(gc_uFrameTime);
-                    if (renderGame() == 0) // can change this into a gameover scene
+
+                    if (renderGame() == 1) // can change this into a gameover scene
                     {
+                        resetTimer();
+                        g_Timer.startTimer();
+                        while (true)
+                        {
+                            getInput();
+                            render5();
+                            update2(g_Timer.getElapsedTime());
+                            g_Timer.waitUntil(gc_uFrameTime);
+                            if (renderResult() == true)
+                            {
+                                break;
+                            }
+                        }
                         setInfo();
                         resetName();
                         break;
@@ -95,6 +110,7 @@ void mainLoop( void )
         }
         else if (renderMenu() == 3)
         {
+            initScore();
             g_bQuitGame = true;
         }
     }    

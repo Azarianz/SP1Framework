@@ -8,6 +8,7 @@
 #include <sstream>
 #include "scores.h"
 #include <algorithm>
+#include <fstream>
 
 double  g_dElapsedTime;
 double  g_dDeltaTime;
@@ -22,8 +23,11 @@ EGAMESTATES g_eGameState = S_SPLASHSCREEN; // initial state
 Console g_Console(60, 30, "SP1 Framework");
 
 std::string name = ""; // takes in user input name
-scores score[5]; // no of scores that can be kept
+scores score[6]; // no of scores that can be kept
+int score2[6];
+std::string name2[6];
 int eventCount = 0; // mitigates the problem of keypresses being pressed twice
+int result = 0; // used to determine whether player win or lose
 
 //--------------------------------------------------------------
 // Purpose  : Initialisation function
@@ -110,38 +114,47 @@ void resetTimer(void)
 void gameTitle(void)
 {
     COORD c;
-    c.X = 2;
-    c.Y = 3;
-    g_Console.writeToBuffer(c, "  d8888b   888888b      d8888b      d8888b    8888888888", 0x0F);
+    c.X = 1;
+    c.Y = 1;
+    g_Console.writeToBuffer(c, "                           db", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "d88P  Y88b 88888888b   d888888b   d88888888b  8888888888", 0x0F);
+    g_Console.writeToBuffer(c, "                          d88b", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "Y88b       888    88b d88    88b 888P    Y8P  888", 0x0F);
+    g_Console.writeToBuffer(c, "  d8888b   8888888b      d8888b       d8888b   8888888888", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "  Y88b     888    88P 888    888 88P          8888888888", 0x0F);
+    g_Console.writeToBuffer(c, "d88P  Y88b 888888888b   d888888b    d88888888b 8888888888", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "     Y88b  88888888P  8888888888 88b          8888888888", 0x0F);
+    g_Console.writeToBuffer(c, "Y88b       888    88b  d88    88b  888P    Y8P 888", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "       888 8888888P   8888888888 888b    d8b  888", 0x0F);
+    g_Console.writeToBuffer(c, "  Y88b     888    88P  888    888  88P         8888888888", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "Y88b  d88P 888        888    888  Y8888888P   8888888888", 0x0F);
+    g_Console.writeToBuffer(c, "     Y88b  888888888P  8888888888  88b         8888888888", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "  Y8888P   888        888    888    Y8888P    8888888888", 0x0F);
+    g_Console.writeToBuffer(c, "       888 88888888P  d8888888888b 888b    d8b 888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "Y88b  d88P 888       d8888    8888b Y8888888P  8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "  Y8888P   888         8888888888     Y8888P   8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "                         88  88", 0x0F);
 
+    c.X += 1;
     c.Y += 2;
-    g_Console.writeToBuffer(c, "    8888    d888b    8888    d88888b    88888888b", 0x0F);
+    g_Console.writeToBuffer(c, "                               8", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "    8888    88888    8888   d8888888b   888888888b", 0x0F);
+    g_Console.writeToBuffer(c, "     d88     db     88b    db d8b db    88888888b", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "    Y88p   d88888b   d88P  d88     88b  888    888p", 0x0F);
+    g_Console.writeToBuffer(c, "    d888    d88b    888b  d888888888b   888888888b", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "     Y88bd888888888bd88P   88888888888  888    888P", 0x0F);
+    g_Console.writeToBuffer(c, "    Y88p   d8888b   d88P d88 Y888P 88b  888    888b", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "      Y8888P 888 Y8888P    88888888888  888888888P", 0x0F);
+    g_Console.writeToBuffer(c, "     Y88bd88888888bd88P   Y8   Y   8P   888888888P", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "       Y88P  888  Y88P     888     888  888888888b", 0x0F);
+    g_Console.writeToBuffer(c, "      Y8888P    Y8888P   d88888888888b  888888888P", 0x0F);
     c.Y += 1;
-    g_Console.writeToBuffer(c, "        qp    8    qp      888     888  888    Y88b", 0x0F);
+    g_Console.writeToBuffer(c, "       Y88P      Y88P    888  Y8P  888  888   Y88b", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "        qp        qp     888   8   888  888    Y88b", 0x0F);
 }
 
 void render2(void) // for rendering the menu
@@ -149,7 +162,6 @@ void render2(void) // for rendering the menu
     clearScreen();
     consoleBG();
     renderMenu();
-    //renderInputEvents();
     renderToScreen();
 }
 
@@ -161,9 +173,9 @@ int renderMenu(void)
 
     gameTitle();
 
-    b.X = g_Console.getConsoleSize().X / 2 - 3; b.Y = 22;
-    s.X = g_Console.getConsoleSize().X / 2 - 3; s.Y = 24;
-    q.X = g_Console.getConsoleSize().X / 2 - 3; q.Y = 26;
+    b.X = g_Console.getConsoleSize().X / 2 - 3; b.Y = 23;
+    s.X = g_Console.getConsoleSize().X / 2 - 3; s.Y = 25;
+    q.X = g_Console.getConsoleSize().X / 2 - 3; q.Y = 27;
 
     bb << "START";
     ss << "SCORES";
@@ -173,11 +185,11 @@ int renderMenu(void)
     g_Console.writeToBuffer(s, ss.str(), 0x0F);
     g_Console.writeToBuffer(q, qq.str(), 0x0F);
 
-    if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 21) && (g_mouseEvent.mousePosition.Y <= 22)))
+    if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 22) && (g_mouseEvent.mousePosition.Y <= 23)))
         return choice = 1;
-    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 23) && (g_mouseEvent.mousePosition.Y <= 24)))
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 24) && (g_mouseEvent.mousePosition.Y <= 25)))
         return choice = 2;
-    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 25) && (g_mouseEvent.mousePosition.Y <= 26)))
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 26) && (g_mouseEvent.mousePosition.Y <= 27)))
         return choice = 3;
 }
 
@@ -217,25 +229,24 @@ bool renderScore(void)
     c.Y += 6;
     g_Console.writeToBuffer(c, "Press Esc to return to menu");
 
-    
-
-    std::string arr2[5];
+    std::string arr2[6];
     int arr[] = { score[0].getScore(), score[1].getScore(), score[2].getScore(), 
-                  score[3].getScore(), score[4].getScore() };
+                  score[3].getScore(), score[4].getScore(), score[5].getScore() };
     int n = sizeof(arr) / sizeof(arr[0]);
     
-    std::sort(arr, arr + 5, std::greater<int>());
-    for (unsigned int x = 0; x < 5; ++x)
+    std::sort(arr, arr + n, std::greater<int>());
+    for (unsigned int x = 0; x < 6; ++x)
         {
-            for (unsigned int y = 0; y < 5; ++y)
+            for (unsigned int y = 0; y < 6; ++y)
             {
                 if (arr[x] == score[y].getScore())
                 {
-                    arr2[x] = score[y].getName();
+                    arr2[x] = score[y].getName(); // have this rewrite into the new file
                 }
             }
         }
-    
+
+    resetClass();
     c.Y = g_Console.getConsoleSize().Y / 4;
     for (int i = 0; i < 5; ++i)
     {
@@ -245,51 +256,29 @@ bool renderScore(void)
         {
             c.X += 5;
             c.Y += 2;
+            score[i].setName(arr2[i]);
+            score[i].setScore(arr[i]);
             ss.str("");
-            ss << arr2[i] << "   " << arr[i];
+            ss << score[i].getName() << "   " << score[i].getScore();
         g_Console.writeToBuffer(c, ss.str());
         }
         else 
         {
             c.Y += 2;
+            score[i].setName(arr2[i]);
+            score[i].setScore(arr[i]);
             ss.str("");
-            ss << arr2[i] << "   " << arr[i];
+            ss << score[i].getName() << "   " << score[i].getScore();
             g_Console.writeToBuffer(c, ss.str());
         }
-        
+        name2[i] = arr2[i];
+        score2[i] = arr[i];
     }
-
-    
-    /*c.Y += 2;
-    ss.str("");
-    ss << score[0].getName() << "   " << score[0].getScore();
-    g_Console.writeToBuffer(c, ss.str());
-    
-    c.Y += 2;
-    ss.str("");
-    ss << score[1].getName() << "   " << score[1].getScore();
-    g_Console.writeToBuffer(c, ss.str());
-
-    c.Y += 2;
-    ss.str("");
-    ss << score[2].getName() << "   " << score[2].getScore();
-    g_Console.writeToBuffer(c, ss.str());
-
-    c.Y += 2;
-    ss.str("");
-    ss << score[3].getName() << "   " << score[3].getScore();
-    g_Console.writeToBuffer(c, ss.str());
-
-    c.Y += 2;
-    ss.str("");
-    ss << score[4].getName() << "   " << score[4].getScore();
-    g_Console.writeToBuffer(c, ss.str());*/
-    
-
     if (g_skKeyEvent[K_ESCAPE].keyReleased)
     {
         return false;
     }
+    
 }
 
 void render4(void)
@@ -297,7 +286,6 @@ void render4(void)
     clearScreen();
     consoleBG();
     renderName();
-    //renderInputEvents();
     renderToScreen();
 }
 
@@ -320,7 +308,7 @@ int renderName(void)
     }
     else if ((g_skKeyEvent[K_ENTER].keyReleased) && (name.length() == 5))
     {
-        return 1;        
+        return 1;     
     }
     else
     {
@@ -760,15 +748,157 @@ void resetName(void)
 
 void setInfo(void)
 {
-    for (unsigned int x = 0; x < 5; ++x)
+    
+    for (unsigned int x = 0; x < 6; ++x) // 6 as there are 6 class, 5 being used for the leaderboard if there are any saved scores and last being the player's
     {
-        if (score[x].getName() == "")
+        if (score[x].getScore() == 0)
         {
             score[x].setName(name);
-            score[x].setScore();
+            
+            srand((int)time(0));
+            int ran = rand() % 100 + 1;
+            score[x].setScore(ran);
             break;
         }
     }
+}
+
+void resetClass(void)
+{
+    int reset = 0;
+    for (unsigned int x = 0; x < 6; ++x)
+    {
+        score[x].setName("");
+        score[x].setScore(reset);
+    }
+}
+
+bool renderResult(void)
+{
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+    {
+        result = 0;
+        return true;
+    }
+    
+    COORD c;
+    
+    c.X = g_Console.getConsoleSize().X / 2;
+    c.Y = g_Console.getConsoleSize().Y / 3;
+    
+    if (result == 1)
+    {
+        c.X -= 8;
+        g_Console.writeToBuffer(c, "Congratulations,");
+        
+        c.X -= 6;
+        c.Y += 2;
+        g_Console.writeToBuffer(c, "You have defeated the boss!");
+
+        c.X -= 1;
+        c.Y += 5;
+        g_Console.writeToBuffer(c, "Press 'Esc' to return to menu");
+
+        
+    }
+    else if (result == 2)
+    {
+        c.X -= 13;
+        g_Console.writeToBuffer(c, "Oof, better luck next time");
+        
+        c.X -= 2;
+        c.Y += 5;
+        g_Console.writeToBuffer(c, "Press 'Esc' to return to menu");
+    }
+}
+
+void render5(void)
+{
+    clearScreen();
+    consoleBG();
+    renderResult();
+    renderToScreen();
+}
+
+void initScore(void)
+{
+    std::ofstream outScore("score.txt");
+    for (unsigned int x = 0; x < 5; ++x)
+    {
+        outScore << score2[x] << std::endl;
+    }
+    outScore.close();
+
+    std::ofstream outName("name.txt");
+    for (unsigned int y = 0; y < 5; ++y)
+    {
+        outName << name2[y] << std::endl;
+    }
+    outName.close();
+}
+
+void outScore(void)
+{
+    std::ifstream inScore, inName;
+    inScore.open("score.txt");
+
+    if (inScore.fail())
+    {
+        std::cerr << "Error, could not open file" << std::endl;
+        exit(1);
+    }
+
+    int num[6];
+
+    inScore >> num[0] >> num[1] >> num[2] >> num[3] >> num[4];
+    
+    for (unsigned int x = 0; x < 5; ++x)
+    {
+        if (num[x] < 0)
+        {
+            int nu = 0;
+            score[x].setScore(nu);
+        }
+        else
+        {
+            int nu = num[x];
+            score[x].setScore(nu);
+        }
+    }
+    inScore.close();
+
+    inName.open("name.txt");
+
+        if (inName.fail())
+        {
+            std::cerr << "Error, could not open file" << std::endl;
+            exit(1);
+        }
+
+    std::string nam[5];
+    inName >> nam[0] >> nam[1] >> nam[2] >> nam[3] >> nam[4];
+
+    for (unsigned int y = 0; y < 5; ++y)
+    {
+        std::string na = nam[y];
+        score[y].setName(na);
+    }
+    inName.close();
+
+    // this resets the txt file
+    std::ofstream outScore("score.txt");
+    for (unsigned int x = 0; x < 5; ++x)
+    {
+        outScore << 0 << std::endl;
+    }
+    outScore.close();
+
+    std::ofstream outName("name.txt");
+    for (unsigned int y = 0; y < 5; ++y)
+    {
+        outName << "" << std::endl;
+    }
+    outName.close();
 }
 
 //--------------------------------------------------------------
@@ -1062,7 +1192,10 @@ int renderGame()
     renderCharacter();  // renders the character into the buffer
     renderUI();
     if (g_skKeyEvent[K_ESCAPE].keyReleased)
-        return 0;
+    {
+        result = 1;
+        return 1;
+    }
 }
 
 void renderMap()

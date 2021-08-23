@@ -78,6 +78,11 @@ int renderName(void); // will be inside render4 : functions for name page
 void renderUI(void); // renders out the UI (name, time, etc)
 void resetName(void); // resets the name input : used when user exits name menu/game and win/lose
 void setInfo(void); // initialises the into into a score class
+void resetClass(void); // this is used to reset the 6th class so the user can use it again
+bool renderResult(void); //this renders the win/lose screen
+void render5(void); // this renders out the win/lose screen
+void initScore(void); // this is used to write into the file for name and score
+void outScore(void); // this is used to read from the file
 
 void splashScreenWait();    // waits for time to pass in splash screen
 void updateGame();          // gameplay logic

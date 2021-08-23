@@ -13,11 +13,9 @@ scores::scores()
 	score = 0;
 }
 
-void scores::setScore(void)
+void scores::setScore(int x)
 {
-	srand((int)time(0));
-	int ran = rand() % 100;
-	score += ran;
+	score = x;
 	// the enemies killed will be put in here
 }
 
@@ -33,5 +31,5 @@ std::string scores::getName(void)
 
 void scores::setName(std::string x)
 {
-	name += x;
+	name = x;
 }
