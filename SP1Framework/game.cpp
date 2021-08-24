@@ -22,10 +22,11 @@ EGAMESTATES g_eGameState = S_SPLASHSCREEN; // initial state
 // Console object
 Console g_Console(60, 30, "SP1 Framework");
 
+// Variables used for UI/UX
 std::string name = ""; // takes in user input name
 scores score[6]; // no of scores that can be kept
-int score2[6];
-std::string name2[6];
+int score2[5]; // used to write the score rankings into file
+std::string name2[5]; // used to write the name rankings into file
 int eventCount = 0; // mitigates the problem of keypresses being pressed twice
 int result = 0; // used to determine whether player win or lose
 
@@ -70,6 +71,7 @@ void shutdown( void )
     g_Console.clearBuffer();
 }
 
+
 void consoleBG(void)
 {
     COORD c;
@@ -109,6 +111,46 @@ void resetTimer(void)
 {
     g_dElapsedTime = 0.0;
     g_eGameState = S_SPLASHSCREEN;
+}
+
+void resetName(void)
+{
+    name = "";
+}
+
+void resetClass(void)
+{
+    int reset = 0;
+    for (unsigned int x = 0; x < 6; ++x)
+    {
+        score[x].setName("");
+        score[x].setScore(reset);
+    }
+}
+
+void setInfo(void)
+{
+    
+    for (unsigned int x = 0; x < 6; ++x) // 6 as there are 6 class, 5 being used for the leaderboard if there are any saved scores and last being the player's
+    {
+        if (score[x].getScore() == 0)
+        {
+            score[x].setName(name);
+            
+            srand((int)time(0));
+            int ran = rand() % 100 + 1;
+            score[x].setScore(ran);
+            break;
+        }
+    }
+}
+
+void render2(void) // for rendering the menu
+{
+    clearScreen();
+    consoleBG();
+    renderMenu();
+    renderToScreen();
 }
 
 void gameTitle(void)
@@ -155,14 +197,6 @@ void gameTitle(void)
     g_Console.writeToBuffer(c, "       Y88P      Y88P    888  Y8P  888  888   Y88b", 0x0F);
     c.Y += 1;
     g_Console.writeToBuffer(c, "        qp        qp     888   8   888  888    Y88b", 0x0F);
-}
-
-void render2(void) // for rendering the menu
-{
-    clearScreen();
-    consoleBG();
-    renderMenu();
-    renderToScreen();
 }
 
 int renderMenu(void)
@@ -741,36 +775,12 @@ void renderUI(void)
     }
 }
 
-void resetName(void)
+void render5(void)
 {
-    name = "";
-}
-
-void setInfo(void)
-{
-    
-    for (unsigned int x = 0; x < 6; ++x) // 6 as there are 6 class, 5 being used for the leaderboard if there are any saved scores and last being the player's
-    {
-        if (score[x].getScore() == 0)
-        {
-            score[x].setName(name);
-            
-            srand((int)time(0));
-            int ran = rand() % 100 + 1;
-            score[x].setScore(ran);
-            break;
-        }
-    }
-}
-
-void resetClass(void)
-{
-    int reset = 0;
-    for (unsigned int x = 0; x < 6; ++x)
-    {
-        score[x].setName("");
-        score[x].setScore(reset);
-    }
+    clearScreen();
+    consoleBG();
+    renderResult();
+    renderToScreen();
 }
 
 bool renderResult(void)
@@ -782,7 +792,7 @@ bool renderResult(void)
     }
     
     COORD c;
-    
+    std::ostringstream ss;
     c.X = g_Console.getConsoleSize().X / 2;
     c.Y = g_Console.getConsoleSize().Y / 3;
     
@@ -796,10 +806,20 @@ bool renderResult(void)
         g_Console.writeToBuffer(c, "You have defeated the boss!");
 
         c.X -= 1;
-        c.Y += 5;
+        c.Y += 10;
         g_Console.writeToBuffer(c, "Press 'Esc' to return to menu");
 
+        c.X = g_Console.getConsoleSize().X / 2 - 5;
+        c.Y = g_Console.getConsoleSize().Y / 3 + 6;
+
+        ss << "Name: " << name;
+        g_Console.writeToBuffer(c, ss.str());
         
+        c.Y += 2;
+        ss.str("");
+        ss << "Score: " /*<< score*/;
+        g_Console.writeToBuffer(c, ss.str());
+
     }
     else if (result == 2)
     {
@@ -807,17 +827,20 @@ bool renderResult(void)
         g_Console.writeToBuffer(c, "Oof, better luck next time");
         
         c.X -= 2;
-        c.Y += 5;
+        c.Y += 10;
         g_Console.writeToBuffer(c, "Press 'Esc' to return to menu");
-    }
-}
 
-void render5(void)
-{
-    clearScreen();
-    consoleBG();
-    renderResult();
-    renderToScreen();
+        c.X = g_Console.getConsoleSize().X / 2 - 5;
+        c.Y = g_Console.getConsoleSize().Y / 3 + 4;
+
+        ss << "Name: " << name;
+        g_Console.writeToBuffer(c, ss.str());
+
+        c.Y += 2;
+        ss.str("");
+        ss << "Score: " /*<< score*/;
+        g_Console.writeToBuffer(c, ss.str());
+    }
 }
 
 void initScore(void)
@@ -900,6 +923,7 @@ void outScore(void)
     }
     outName.close();
 }
+
 
 //--------------------------------------------------------------
 // Purpose  : Get all the console input events
@@ -1129,12 +1153,12 @@ void moveCharacter()
    
 }
 
-//void processUserInput()
-//{
-//    // quits the game if player hits the escape key
-//    if (g_skKeyEvent[K_ESCAPE].keyReleased)
-//        g_bQuitGame = true;    
-//}
+void processUserInput()
+{
+    // quits the game if player hits the escape key
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+        g_bQuitGame = true;    
+}
 
 //--------------------------------------------------------------
 // Purpose  : Render function is to update the console screen

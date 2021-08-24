@@ -61,33 +61,37 @@ void update      ( double dt ); // update the game and the state of the game
 void render      ( void );      // renders the current state of the game to the console
 void shutdown    ( void );      // do clean up, free memory
 
+// here are the added functions for UI/UX
+
 void consoleBG(void); // this changes the console color
 
 void update2(double dt); //zero waiting time for menu, name input, and score page
 void splashScreenWait2(void);
 
 void resetTimer(void); // resets the timer and scrn state for when the user enters a new game from menu
+void resetName(void); // resets the name input : used when user exits name menu/game and win/lose
+void resetClass(void); // this is used to reset the 6th class so the user can use it again
+void setInfo(void); // initialises the into into a score class
 
-void gameTitle(void); // prints out the game title
 void render2(void); // for rendering menu : functions for menu
-int renderMenu(void); // will be inside render3
+void gameTitle(void); // prints out the game title
+int renderMenu(void); // will be inside render2
 void render3(void); // for rendering score : functions for scores
 bool renderScore(void); // will be inside render3
 void render4(void); // for rendering the page for player to input name
 int renderName(void); // will be inside render4 : functions for name page
 void renderUI(void); // renders out the UI (name, time, etc)
-void resetName(void); // resets the name input : used when user exits name menu/game and win/lose
-void setInfo(void); // initialises the into into a score class
-void resetClass(void); // this is used to reset the 6th class so the user can use it again
-bool renderResult(void); //this renders the win/lose screen
 void render5(void); // this renders out the win/lose screen
+bool renderResult(void); //this renders the win/lose screen
+
 void initScore(void); // this is used to write into the file for name and score
 void outScore(void); // this is used to read from the file
+
 
 void splashScreenWait();    // waits for time to pass in splash screen
 void updateGame();          // gameplay logic
 void moveCharacter();       // moves the character, collision detection, physics, etc
-// void processUserInput();    // checks if you should change states or do something else with the game, e.g. pause, exit
+void processUserInput();    // checks if you should change states or do something else with the game, e.g. pause, exit
 void clearScreen();         // clears the current screen and draw from scratch 
 void renderSplashScreen();  // renders the splash screen
 int renderGame();          // renders the game stuff

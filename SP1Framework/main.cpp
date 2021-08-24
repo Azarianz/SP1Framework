@@ -9,10 +9,6 @@ bool g_bQuitGame = false;                    // Set to true if you want to quit 
 const unsigned char gc_ucFPS = 30;                // FPS of this game
 const unsigned int gc_uFrameTime = 1000 / gc_ucFPS;    // time for each frame
 
-bool gO = false;
-bool name = false;
-int scorecount = 0;
-
 //main loop declaration
 void mainLoop( void );
 
@@ -39,7 +35,6 @@ int main( void )
 //--------------------------------------------------------------
 void mainLoop( void )
 {
-    //scores score    [5];
     outScore();
     g_Timer.startTimer();    // Start timer to calculate how long it takes to render this frame
     while (!g_bQuitGame)      // run this loop until user wants to quit 
@@ -77,6 +72,7 @@ void mainLoop( void )
                     {
                         resetTimer();
                         g_Timer.startTimer();
+                        setInfo();
                         while (true)
                         {
                             getInput();
@@ -88,8 +84,11 @@ void mainLoop( void )
                                 break;
                             }
                         }
-                        setInfo();
                         resetName();
+                        break;
+                    }
+                    else if (renderGame() == 0)
+                    {
                         break;
                     }
             }
