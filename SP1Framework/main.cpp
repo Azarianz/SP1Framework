@@ -68,7 +68,7 @@ void mainLoop( void )
                     update(g_Timer.getElapsedTime());
                     g_Timer.waitUntil(gc_uFrameTime);
 
-                    if (renderGame() == 1) // can change this into a gameover scene
+                    if (renderGame() == true) // can change this into a gameover scene
                     {
                         resetTimer();
                         g_Timer.startTimer();
@@ -87,7 +87,7 @@ void mainLoop( void )
                         resetName();
                         break;
                     }
-                    else if (renderGame() == 0)
+                    else if (renderGame() == false)
                     {
                         break;
                     }

@@ -71,7 +71,6 @@ void shutdown( void )
     g_Console.clearBuffer();
 }
 
-
 void consoleBG(void)
 {
     COORD c;
@@ -798,44 +797,19 @@ bool renderResult(void)
     
     if (result == 1)
     {
-        c.X -= 8;
-        g_Console.writeToBuffer(c, "Congratulations,");
-        
-        c.X -= 6;
-        c.Y += 2;
-        g_Console.writeToBuffer(c, "You have defeated the boss!");
+        c.X -= 4;
+        g_Console.writeToBuffer(c, "Game Over");
 
-        c.X -= 1;
+        c.X -= 9;
         c.Y += 10;
         g_Console.writeToBuffer(c, "Press 'Esc' to return to menu");
-
-        c.X = g_Console.getConsoleSize().X / 2 - 5;
-        c.Y = g_Console.getConsoleSize().Y / 3 + 6;
-
-        ss << "Name: " << name;
-        g_Console.writeToBuffer(c, ss.str());
         
-        c.Y += 2;
-        ss.str("");
-        ss << "Score: " /*<< score*/;
-        g_Console.writeToBuffer(c, ss.str());
-
-    }
-    else if (result == 2)
-    {
-        c.X -= 13;
-        g_Console.writeToBuffer(c, "Oof, better luck next time");
-        
-        c.X -= 2;
-        c.Y += 10;
-        g_Console.writeToBuffer(c, "Press 'Esc' to return to menu");
-
         c.X = g_Console.getConsoleSize().X / 2 - 5;
         c.Y = g_Console.getConsoleSize().Y / 3 + 4;
 
         ss << "Name: " << name;
         g_Console.writeToBuffer(c, ss.str());
-
+        
         c.Y += 2;
         ss.str("");
         ss << "Score: " /*<< score*/;
@@ -923,7 +897,6 @@ void outScore(void)
     }
     outName.close();
 }
-
 
 //--------------------------------------------------------------
 // Purpose  : Get all the console input events
@@ -1210,7 +1183,7 @@ void renderSplashScreen()  // renders the splash screen
     g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x0F);
 }
 
-int renderGame()
+bool renderGame()
 {
     renderMap();        // renders the map to the buffer first
     renderCharacter();  // renders the character into the buffer
@@ -1218,8 +1191,13 @@ int renderGame()
     if (g_skKeyEvent[K_ESCAPE].keyReleased)
     {
         result = 1;
-        return 1;
+        return true;
     }
+    //else if (/*add condition of player live == 0*/)
+    //{
+    //    result = 1;
+    //    true;
+    //}
 }
 
 void renderMap()
