@@ -34,12 +34,82 @@ int main( void )
 //--------------------------------------------------------------
 void mainLoop( void )
 {
+    outScore();
     g_Timer.startTimer();    // Start timer to calculate how long it takes to render this frame
     while (!g_bQuitGame)      // run this loop until user wants to quit 
-    {        
-        getInput();                         // get keyboard input
-        update(g_Timer.getElapsedTime());   // update the game
-        render();                           // render the graphics output to screen
-        g_Timer.waitUntil(gc_uFrameTime);   // Frame rate limiter. Limits each frame to a specified time in ms.      
-    }    
+    {
+        update2(g_Timer.getElapsedTime());
+        getInput();
+        render2();
+        g_Timer.waitUntil(gc_uFrameTime);
+        if (renderMenu() == 1)
+        {
+            resetTimer();
+            g_Timer.startTimer();
+            while (true)
+            {
+                getInput();
+                render4();
+                update2(g_Timer.getElapsedTime());
+                g_Timer.waitUntil(gc_uFrameTime);
+                if ((renderName() == 1) || (renderName() == 0))
+                    break;
+            }
+            resetTimer();
+            g_Timer.startTimer();
+            while (true)
+            {
+                if (renderName() == 0)
+                    break;
+                else
+                    getInput();
+                render();
+                update(g_Timer.getElapsedTime());
+                g_Timer.waitUntil(gc_uFrameTime);
+
+                if (renderGame() == true) // can change this into a gameover scene
+                {
+                    resetTimer();
+                    g_Timer.startTimer();
+                    setInfo();
+                    while (true)
+                    {
+                        getInput();
+                        render5();
+                        update2(g_Timer.getElapsedTime());
+                        g_Timer.waitUntil(gc_uFrameTime);
+                        if (renderResult() == true)
+                        {
+                            break;
+                        }
+                    }
+                    resetName();
+                    break;
+                }
+                else if (renderGame() == false)
+                {
+                    break;
+                }
+            }
+        }
+        else if (renderMenu() == 2)
+        {
+            resetTimer();
+            g_Timer.startTimer();
+            while (true)
+            {
+                getInput();
+                render3();
+                update2(g_Timer.getElapsedTime());
+                g_Timer.waitUntil(gc_uFrameTime);
+                if (renderScore() == false)
+                    break;
+            }
+        }
+        else if (renderMenu() == 3)
+        {
+            initScore();
+            g_bQuitGame = true;
+        }
+    }
 }

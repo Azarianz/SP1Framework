@@ -8,6 +8,8 @@
 #include <sstream>
 #include <fstream>
 #include <time.h>
+#include <algorithm>
+#include "scores.h"
 
 using namespace std;
 
@@ -72,10 +74,18 @@ double bossBulletTime = 60;
 //Bullet Spawn Points
 COORD bulletPoints[3];
 
+// Variables used for UI/UX
+std::string name = ""; // takes in user input name
+scores score1[6]; // no of scores that can be kept
+int score2[5]; // used to write the score rankings into file
+std::string name2[5]; // used to write the name rankings into file
+int eventCount = 0; // mitigates the problem of keypresses being pressed twice
+int result = 0; // used to determine whether player win or lose
+
 EGAMESTATES g_eGameState = S_SPLASHSCREEN; // initial state
 
 // Console object
-Console g_Console(40, 30, "Space Wars");
+Console g_Console(60, 30, "Space Wars");
 
 #pragma region Startup
 
@@ -368,10 +378,38 @@ void gameplayKBHandler(const KEY_EVENT_RECORD& keyboardEvent)
     {
     case VK_UP: key = K_UP; break;
     case VK_DOWN: key = K_DOWN; break;
-    case VK_LEFT: key = K_LEFT; break; 
-    case VK_RIGHT: key = K_RIGHT; break; 
+    case VK_LEFT: key = K_LEFT; break;
+    case VK_RIGHT: key = K_RIGHT; break;
     case VK_SPACE: key = K_SPACE; break;
-    case VK_ESCAPE: key = K_ESCAPE; break; 
+    case VK_ESCAPE: key = K_ESCAPE; break;
+    case VK_RETURN: key = K_ENTER; break;
+    case VK_BACK: key = K_BACK; break;
+    case 'A': key = K_A; break;
+    case 'B': key = K_B; break;
+    case 'C': key = K_C; break;
+    case 'D': key = K_D; break;
+    case 'E': key = K_E; break;
+    case 'F': key = K_F; break;
+    case 'G': key = K_G; break;
+    case 'H': key = K_H; break;
+    case 'I': key = K_I; break;
+    case 'J': key = K_J; break;
+    case 'K': key = K_K; break;
+    case 'L': key = K_L; break;
+    case 'M': key = K_M; break;
+    case 'N': key = K_N; break;
+    case 'O': key = K_O; break;
+    case 'P': key = K_P; break;
+    case 'Q': key = K_Q; break;
+    case 'R': key = K_R; break;
+    case 'S': key = K_S; break;
+    case 'T': key = K_T; break;
+    case 'U': key = K_U; break;
+    case 'V': key = K_V; break;
+    case 'W': key = K_W; break;
+    case 'X': key = K_X; break;
+    case 'Y': key = K_Y; break;
+    case 'Z': key = K_Z; break;
     }
     // a key pressed event would be one with bKeyDown == true
     // a key released event would be one with bKeyDown == false
@@ -381,7 +419,7 @@ void gameplayKBHandler(const KEY_EVENT_RECORD& keyboardEvent)
     {
         g_skKeyEvent[key].keyDown = keyboardEvent.bKeyDown;
         g_skKeyEvent[key].keyReleased = !keyboardEvent.bKeyDown;
-    }    
+    }
 }
 
 //--------------------------------------------------------------
@@ -476,7 +514,7 @@ void updateGame()       // gameplay logic
     bulletPoints[2].X = Boss.m_cLocation.X + 13;
     bulletPoints[2].Y = Boss.m_cLocation.Y + 4;
 
-    processUserInput(); // checks if you should change states or do something else with the game, e.g. pause, exit
+    //processUserInput(); // checks if you should change states or do something else with the game, e.g. pause, exit
     moveCharacter();    // moves the character, collision detection, physics, etc
     checkCollision();
     moveEnemy();
@@ -666,9 +704,9 @@ void render()
     case S_GameOver: gameoverScene();
         break;
     }
-    renderFramerate();      // renders debug information, frame rate, elapsed time, etc
+    //renderFramerate();      // renders debug information, frame rate, elapsed time, etc
     //renderInputEvents();    // renders status of input events
-    renderGameInfo();
+    //renderGameInfo();
     renderToScreen();       // dump the contents of the buffer to the screen, one frame worth of game
 }
 
@@ -688,19 +726,21 @@ void renderSplashScreen()  // renders the splash screen
 {
     COORD c = g_Console.getConsoleSize();
     c.Y /= 3;
-    c.X = c.X / 2 - 9;
-    g_Console.writeToBuffer(c, "A game in 3 seconds", 0x03);
-    c.Y += 1;
-    c.X = g_Console.getConsoleSize().X / 2 - 20;
-    g_Console.writeToBuffer(c, "Press <Space> to change character colour", 0x09);
-    c.Y += 1;
+    c.X = c.X / 2 - 16;
+    g_Console.writeToBuffer(c, "The game will start in 3 seconds", 0x0F);
+    c.Y += 2;
+    c.X = g_Console.getConsoleSize().X / 2 - 12;
+    g_Console.writeToBuffer(c, "Use the Arrow keys to move", 0x0F);
+    c.Y += 2;
     c.X = g_Console.getConsoleSize().X / 2 - 9;
-    g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x09);
+    g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x0F);
 }
 
-void renderGame()
+bool renderGame()
 {
     renderMap();        // renders the map to the buffer first
+    consoleBG();
+    renderUI();
     renderCharacter();  // renders the character into the buffer
     renderBullet();     //render spaceship bullet
     RbulletEnemy();
@@ -718,6 +758,11 @@ void renderGame()
     {
         renderBoss();
         renderBossBullet();
+    }
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+    {
+        result = 0;
+        return true;
     }
 }
 
@@ -2048,6 +2093,837 @@ void checkKilled()
 
     }
 }
+
+void consoleBG(void)
+{
+    COORD c;
+    for (unsigned int rows = 0; rows < 60; ++rows)
+    {
+        for (unsigned int cols = 0; cols < 30; ++cols)
+        {
+            c.X = rows;
+            c.Y = cols;
+            g_Console.writeToBuffer(c, " ", 0x00);
+        }
+    }
+}
+
+void update2(double dt)
+{
+    // get the delta time
+    g_dElapsedTime += dt;
+    g_dDeltaTime = dt;
+
+    switch (g_eGameState)
+    {
+    case S_SPLASHSCREEN: splashScreenWait2(); // game logic for the splash screen
+        break;
+    case S_GAME: updateGame(); // gameplay logic when we are in the game
+        break;
+    }
+}
+
+void splashScreenWait2(void)
+{
+    if (g_dElapsedTime > 0.1) // wait for 3 seconds to switch to game mode, else do nothing
+        g_eGameState = S_GAME;
+}
+
+void resetTimer(void)
+{
+    g_dElapsedTime = 0.0;
+    g_eGameState = S_SPLASHSCREEN;
+}
+
+void resetName(void)
+{
+    name = "";
+}
+
+void resetClass(void)
+{
+    int reset = 0;
+    for (unsigned int x = 0; x < 6; ++x)
+    {
+        score1[x].setName("");
+        score1[x].setScore(reset);
+    }
+}
+
+void setInfo(void)
+{
+
+    for (unsigned int x = 0; x < 6; ++x) // 6 as there are 6 class, 5 being used for the leaderboard if there are any saved scores and last being the player's
+    {
+        if (score1[x].getScore() == 0)
+        {
+            score1[x].setName(name);
+            score1[x].setScore(score); // set to score
+            break;
+        }
+    }
+}
+
+void render2(void) // for rendering the menu
+{
+    clearScreen();
+    consoleBG();
+    renderMenu();
+    renderToScreen();
+}
+
+void gameTitle(void)
+{
+    COORD c;
+    c.X = 1;
+    c.Y = 1;
+    g_Console.writeToBuffer(c, "                           db", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "                          d88b", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "  d8888b   8888888b      d8888b       d8888b   8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "d88P  Y88b 888888888b   d888888b    d88888888b 8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "Y88b       888    88b  d88    88b  888P    Y8P 888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "  Y88b     888    88P  888    888  88P         8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "     Y88b  888888888P  8888888888  88b         8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "       888 88888888P  d8888888888b 888b    d8b 888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "Y88b  d88P 888       d8888    8888b Y8888888P  8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "  Y8888P   888         8888888888     Y8888P   8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "                         88  88", 0x0F);
+
+    c.X += 1;
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "                               8", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "     d88     db     88b    db d8b db    88888888b", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "    d888    d88b    888b  d888888888b   888888888b", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "    Y88p   d8888b   d88P d88 Y888P 88b  888    888b", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "     Y88bd88888888bd88P   Y8   Y   8P   888888888P", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "      Y8888P    Y8888P   d88888888888b  888888888P", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "       Y88P      Y88P    888  Y8P  888  888   Y88b", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "        qp        qp     888   8   888  888    Y88b", 0x0F);
+}
+
+int renderMenu(void)
+{
+    int choice;
+    COORD b, s, q, x, y, z;
+    std::ostringstream bb, ss, qq, xx, yy, zz;
+
+    gameTitle();
+
+    b.X = g_Console.getConsoleSize().X / 2 - 3; b.Y = 23;
+    s.X = g_Console.getConsoleSize().X / 2 - 3; s.Y = 25;
+    q.X = g_Console.getConsoleSize().X / 2 - 3; q.Y = 27;
+
+    bb << "START";
+    ss << "SCORES";
+    qq << "QUIT";
+
+    g_Console.writeToBuffer(b, bb.str(), 0x0F);
+    g_Console.writeToBuffer(s, ss.str(), 0x0F);
+    g_Console.writeToBuffer(q, qq.str(), 0x0F);
+
+    if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 22) && (g_mouseEvent.mousePosition.Y <= 23)))
+        return choice = 1;
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 24) && (g_mouseEvent.mousePosition.Y <= 25)))
+        return choice = 2;
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 26) && (g_mouseEvent.mousePosition.Y <= 27)))
+        return choice = 3;
+}
+
+void render3(void)
+{
+    clearScreen();
+    consoleBG();
+    renderScore();
+    renderToScreen();
+}
+
+bool renderScore(void)
+{
+    COORD c;
+    std::ostringstream ss;
+
+    c.X = g_Console.getConsoleSize().X / 2 - 7;
+    c.Y = g_Console.getConsoleSize().Y / 4 - 2;
+
+    g_Console.writeToBuffer(c, "LEADERBOARD");
+    c.X -= 4;
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "RANK     NAME  SCORE");
+    c.X += 1;
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "1");
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "2");
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "3");
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "4");
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "5");
+
+    c.X -= 4;
+    c.Y += 6;
+    g_Console.writeToBuffer(c, "Press Esc to return to menu");
+
+    std::string arr2[6];
+    int arr[] = { score1[0].getScore(), score1[1].getScore(), score1[2].getScore(),
+                  score1[3].getScore(), score1[4].getScore(), score1[5].getScore() };
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    std::sort(arr, arr + n, std::greater<int>());
+    for (unsigned int x = 0; x < 6; ++x)
+    {
+        for (unsigned int y = 0; y < 6; ++y)
+        {
+            if (arr[x] == score1[y].getScore())
+            {
+                arr2[x] = score1[y].getName(); // have this rewrite into the new file
+            }
+        }
+    }
+
+    resetClass();
+    c.Y = g_Console.getConsoleSize().Y / 4;
+    for (int i = 0; i < 5; ++i)
+    {
+        c.X = g_Console.getConsoleSize().X / 2 - 2;
+
+        if (arr2[i] == "")
+        {
+            c.X += 5;
+            c.Y += 2;
+            score1[i].setName(arr2[i]);
+            score1[i].setScore(arr[i]);
+            ss.str("");
+            ss << score1[i].getName() << "   " << score1[i].getScore();
+            g_Console.writeToBuffer(c, ss.str());
+        }
+        else
+        {
+            c.Y += 2;
+            score1[i].setName(arr2[i]);
+            score1[i].setScore(arr[i]);
+            ss.str("");
+            ss << score1[i].getName() << "   " << score1[i].getScore();
+            g_Console.writeToBuffer(c, ss.str());
+        }
+        name2[i] = arr2[i];
+        score2[i] = arr[i];
+    }
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+    {
+        return false;
+    }
+
+}
+
+void render4(void)
+{
+    clearScreen();
+    consoleBG();
+    renderName();
+    renderToScreen();
+}
+
+int renderName(void)
+{
+    bool conti = false;
+    COORD a, b, c;
+
+    a.X = g_Console.getConsoleSize().X / 2 - 16; a.Y = 10;
+    b.X = g_Console.getConsoleSize().X / 2 - 14; b.Y = 16;
+    c.X = g_Console.getConsoleSize().X / 2 - 12; c.Y = 18;
+    g_Console.writeToBuffer(a, "Enter Player  Name (5 letters):", 0x0F);
+    g_Console.writeToBuffer(b, "Press 'Enter'  to continue", 0x0F);
+    g_Console.writeToBuffer(c, "Press 'Esc' to go back", 0x0F);
+
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+    {
+        resetName();
+        return 0;
+    }
+    else if ((g_skKeyEvent[K_ENTER].keyReleased) && (name.length() == 5))
+    {
+        return 1;
+    }
+    else
+    {
+        COORD c;
+        c.X = g_Console.getConsoleSize().X / 2 - 3;
+        c.Y = 13;
+
+        if (g_skKeyEvent[K_BACK].keyDown)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                std::string newn = name.substr(0, name.length() - 1);
+                name = newn;
+                eventCount = 0;
+            }
+        }
+        else if (name.length() == 5)
+        {
+            name = name;
+        }
+        else if (g_skKeyEvent[K_A].keyReleased)
+        {
+
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "A";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_B].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "B";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_C].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "C";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_D].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "D";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_E].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "E";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_F].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "F";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_G].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "G";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_H].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "H";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_I].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "I";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_J].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "J";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_K].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "K";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_L].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "L";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_M].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "M";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_N].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "N";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_O].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "O";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_P].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "P";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_Q].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "Q";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_R].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "R";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_S].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "S";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_T].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "T";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_U].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "U";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_V].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "V";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_W].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "W";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_X].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "X";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_Y].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "Y";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_Z].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "Z";
+                eventCount = 0;
+            }
+        }
+        g_Console.writeToBuffer(c, name, 0x0F);
+    }
+}
+
+void renderUI(void)
+{
+    std::ostringstream ss;
+    COORD c;
+
+    // this part renders the player's name
+    {
+        c.X = 45;
+        c.Y = 2;
+        g_Console.writeToBuffer(c, "Player Name");
+
+        c.X += 3;
+        c.Y += 1;
+        g_Console.writeToBuffer(c, name);
+
+    }
+
+    // this part outputs the lives
+    {
+        ss.str("");
+        c.X = 47;
+        c.Y = 7;
+        g_Console.writeToBuffer(c, "Lives");
+        c.X += 3;
+        c.Y += 1;
+        g_Console.writeToBuffer(c, life);
+    }
+
+    // this part outputs the score
+    {
+        ss.str("");
+        c.X = 47;
+        c.Y = 12;
+        g_Console.writeToBuffer(c, "Score");
+        c.X += 3;
+        c.Y += 1;
+        g_Console.writeToBuffer(c, score);
+    }
+
+    // this part outputs the time
+    {
+        ss.str("");
+        c.X = 48;
+        c.Y = 17;
+        g_Console.writeToBuffer(c, "Time");
+
+        c.X += 1;
+        c.Y += 1;
+        ss << std::fixed << std::setprecision(0) << g_dElapsedTime;
+        g_Console.writeToBuffer(c, ss.str());
+
+    }
+
+    // this part outputs the powerup being used
+    {
+        ss.str("");
+        c.X = 46;
+        c.Y = 22;
+        g_Console.writeToBuffer(c, "PowerUps");
+    }
+
+    // this part outputs the UI borders
+    for (unsigned int x = 1; x < 29; ++x)
+    {
+        c.X = 40;
+        c.Y = x;
+        g_Console.writeToBuffer(c, " ", 0xF0);
+    }
+    for (unsigned int x = 1; x < 5; ++x)
+    {
+        for (unsigned int y = 40; y < 60; ++y)
+        {
+            c.X = y;
+            c.Y = 5 * x;
+            g_Console.writeToBuffer(c, " ", 0xF0);
+        }
+    }
+    for (unsigned int x = 1; x < 5; ++x)
+    {
+        for (unsigned int y = 40; y < 60; ++y)
+        {
+            c.X = y;
+            c.Y = 25 + x;
+            g_Console.writeToBuffer(c, " ", 0xF0);
+        }
+    }
+
+    {
+        c.X = 44;
+        c.Y = 27;
+        g_Console.writeToBuffer(c, "Press  'Esc'", 0xF0);
+        c.X += 2;
+        c.Y += 1;
+        g_Console.writeToBuffer(c, "to quit", 0xF0);
+    }
+}
+
+void render5(void)
+{
+    clearScreen();
+    consoleBG();
+    renderResult();
+    renderToScreen();
+}
+
+bool renderResult(void)
+{
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+    {
+        result = 0;
+        return true;
+    }
+
+    COORD c;
+    std::ostringstream ss;
+    c.X = g_Console.getConsoleSize().X / 2;
+    c.Y = g_Console.getConsoleSize().Y / 3;
+
+    if (result == 1)
+    {
+        c.X -= 4;
+        g_Console.writeToBuffer(c, "Game Over");
+
+        c.X -= 9;
+        c.Y += 10;
+        g_Console.writeToBuffer(c, "Press 'Esc' to return to menu");
+
+        c.X = g_Console.getConsoleSize().X / 2 - 5;
+        c.Y = g_Console.getConsoleSize().Y / 3 + 4;
+
+        ss << "Name: " << name;
+        g_Console.writeToBuffer(c, ss.str());
+
+        c.Y += 2;
+        ss.str("");
+        ss << "Score: " /*<< score*/;
+        g_Console.writeToBuffer(c, ss.str());
+    }
+}
+
+void initScore(void)
+{
+    std::ofstream outScore("score.txt");
+    for (unsigned int x = 0; x < 5; ++x)
+    {
+        outScore << score2[x] << std::endl;
+    }
+    outScore.close();
+
+    std::ofstream outName("name.txt");
+    for (unsigned int y = 0; y < 5; ++y)
+    {
+        outName << name2[y] << std::endl;
+    }
+    outName.close();
+}
+
+void outScore(void)
+{
+    std::ifstream inScore, inName;
+    inScore.open("score.txt");
+
+    if (inScore.fail())
+    {
+        std::cerr << "Error, could not open file" << std::endl;
+        exit(1);
+    }
+
+    int num[6];
+
+    inScore >> num[0] >> num[1] >> num[2] >> num[3] >> num[4];
+
+    for (unsigned int x = 0; x < 5; ++x)
+    {
+        if (num[x] < 0)
+        {
+            int nu = 0;
+            score1[x].setScore(nu);
+        }
+        else
+        {
+            int nu = num[x];
+            score1[x].setScore(nu);
+        }
+    }
+    inScore.close();
+
+    inName.open("name.txt");
+
+    if (inName.fail())
+    {
+        std::cerr << "Error, could not open file" << std::endl;
+        exit(1);
+    }
+
+    std::string nam[5];
+    inName >> nam[0] >> nam[1] >> nam[2] >> nam[3] >> nam[4];
+
+    for (unsigned int y = 0; y < 5; ++y)
+    {
+        std::string na = nam[y];
+        score1[y].setName(na);
+    }
+    inName.close();
+
+    // this resets the txt file
+    std::ofstream outScore("score.txt");
+    for (unsigned int x = 0; x < 5; ++x)
+    {
+        outScore << 0 << std::endl;
+    }
+    outScore.close();
+
+    std::ofstream outName("name.txt");
+    for (unsigned int y = 0; y < 5; ++y)
+    {
+        outName << "" << std::endl;
+    }
+    outName.close();
+}
+
 #pragma endregion
 
 
