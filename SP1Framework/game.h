@@ -40,7 +40,8 @@ enum EGAMESTATES
 {
     S_SPLASHSCREEN,
     S_GAME,
-    S_COUNT
+    S_COUNT,
+    S_GameOver
 };
 
 // struct for the game character
@@ -59,15 +60,65 @@ void shutdown    ( void );      // do clean up, free memory
 void splashScreenWait();    // waits for time to pass in splash screen
 void updateGame();          // gameplay logic
 void moveCharacter();       // moves the character, collision detection, physics, etc
+void moveEnemy();
+void moveEnemy2();
+void moveEnemy3();
+void renderRock();
+void Srock();
+void moveBoss();
 void processUserInput();    // checks if you should change states or do something else with the game, e.g. pause, exit
 void clearScreen();         // clears the current screen and draw from scratch 
 void renderSplashScreen();  // renders the splash screen
 void renderGame();          // renders the game stuff
 void renderMap();           // renders the map to the buffer first
 void renderCharacter();     // renders the character into the buffer
+void renderEnemy();
+void renderEnemy2();
+void renderEnemy3();
+void renderBoss();
 void renderFramerate();     // renders debug information, frame rate, elapsed time, etc
 void renderToScreen();      // dump the contents of the buffer to the screen, one frame worth of game
 void renderInputEvents();   // renders the status of input events
+void renderEnemy();         // renders the enemy into the buffer
+void Enemymovement();       // moves enemy, collision detection, physics
+void renderBullet();
+void renderBossBullet();
+void RbulletEnemy();
+void RbulletEnemy2();
+void RbulletEnemy3();
+void EnemyBMove();
+void EnemyBMove2();
+void EnemyBMove3();
+void BulletMove();
+void RockMove();
+void bossBulletMove();
+void checkCollision();
+void renderGameInfo();
+
+void renderSpecial();
+void movePowerUp();
+void checkKilled();
+void gameoverScene();
+void renderGameOver();
+
+//Multishot
+void rMultishot();
+void mMultishot();
+void cMultishot();
+
+//Shield
+void rShield();
+void cShield();
+
+//Health
+void cHealth();
+
+//Bomb
+void cBomb();
+
+
+
+
 
 // keyboard and mouse input event managers
 void keyboardHandler(const KEY_EVENT_RECORD& keyboardEvent);  // define this function for the console to call when there are keyboard events
