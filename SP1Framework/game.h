@@ -46,7 +46,6 @@ enum EGAMESTATES
     S_SPLASHSCREEN,
     S_GAME,
     S_COUNT,
-    S_GameOver
 };
 
 // struct for the game character
@@ -103,8 +102,6 @@ void renderGameInfo();
 void renderSpecial();
 void movePowerUp();
 void checkKilled();
-void gameoverScene();
-void renderGameOver();
 
 //Multishot
 void rMultishot();

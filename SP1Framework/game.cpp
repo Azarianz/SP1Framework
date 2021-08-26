@@ -52,7 +52,6 @@ bool shoot = false;
 bool play = PlaySound(TEXT("audioWater.wav"), NULL, SND_LOOP | SND_ASYNC);
 bool sSound = false;
 int  sCount = 0;
-int  kSound = 0;
 
 int Special;
 string SpecialText;
@@ -330,7 +329,6 @@ void keyboardHandler(const KEY_EVENT_RECORD& keyboardEvent)
         break;
     case S_GAME: gameplayKBHandler(keyboardEvent); // handle gameplay keyboard event 
         break;
-    case S_GameOver: gameplayKBHandler(keyboardEvent);
     }
 }
 
@@ -535,7 +533,6 @@ void updateGame()       // gameplay logic
     cShield();
     cHealth();
     cBomb();
-    renderGameOver();
 
 
     if (bossCanMove == true)
@@ -695,13 +692,12 @@ void processUserInput()
 void render()
 {
     clearScreen();      // clears the current screen and draw from scratch 
+    consoleBG();
     switch (g_eGameState)
     {
     case S_SPLASHSCREEN: renderSplashScreen();
         break;
     case S_GAME: renderGame();
-        break;
-    case S_GameOver: gameoverScene();
         break;
     }
     //renderFramerate();      // renders debug information, frame rate, elapsed time, etc
@@ -753,7 +749,6 @@ bool renderGame()
     rMultishot();
     rShield();
     renderSpecial();
-
     if (bossCanMove == true)
     {
         renderBoss();
@@ -762,6 +757,12 @@ bool renderGame()
     if (g_skKeyEvent[K_ESCAPE].keyReleased)
     {
         result = 0;
+        resetName();
+        return false;
+    }
+    if (life == 0)
+    {
+        result = 1;
         return true;
     }
 }
@@ -1592,73 +1593,6 @@ void renderGameInfo()
 
 }
 
-void gameoverScene()
-{
-    COORD c = g_Console.getConsoleSize();
-    c.Y /= 3;
-    c.X = c.X / 2 - 9;
-    g_Console.writeToBuffer(c, "GAMEOVER", 0x03);
-    c.Y += 1;
-    c.X = g_Console.getConsoleSize().X / 2 - 20;
-    g_Console.writeToBuffer(c, "Press <Space> to Play Again", 0x09);
-    c.Y += 1;
-    c.X = g_Console.getConsoleSize().X / 2 - 9;
-    g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x09);
-
-    if (g_skKeyEvent[K_SPACE].keyReleased)
-    {
-        init();
-    }
-    else if (g_skKeyEvent[K_ESCAPE].keyReleased)
-    {
-        g_bQuitGame = true;
-    }
-}
-
-void renderGameOver()
-{
-    for (int i = 0; i < difficulty; i++)
-    {
-        if (g_sChar.m_cLocation.X == Enemy[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy[i].m_cLocation.Y)
-        {
-            life -= 1;
-            g_sChar.m_bActive = false;
-            g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
-            g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
-            g_sChar.m_bActive = true;
-            Beep(175, 70);
-        }
-        if (g_sChar.m_cLocation.X == Enemy2[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy2[i].m_cLocation.Y)
-        {
-            if (Enemy2[i].m_bActive == true)
-            {
-                life -= 1;
-                g_sChar.m_bActive = false;
-                g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
-                g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
-                g_sChar.m_bActive = true;
-            }
-        }
-        if (g_sChar.m_cLocation.X == Enemy3[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy3[i].m_cLocation.Y)
-        {
-            if (Enemy3[i].m_bActive == true)
-            {
-                life -= 1;
-                g_sChar.m_bActive = false;
-                g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
-                g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
-                g_sChar.m_bActive = true;
-            }
-        }
-        if (life <= 0)
-        {
-            g_eGameState = S_GameOver;
-        }
-    }
-    
-
-}
-
 void rMultishot()
 {
     for (int i = 0; i < 2; i++)
@@ -2221,23 +2155,26 @@ void gameTitle(void)
 int renderMenu(void)
 {
     int choice;
-    COORD b, s, q, x, y, z;
-    std::ostringstream bb, ss, qq, xx, yy, zz;
+    COORD c;
 
     gameTitle();
+    renderFramerate();
+    c.X = g_Console.getConsoleSize().X / 2 - 3; 
+    c.Y = 23;
+    g_Console.writeToBuffer(c, "START", 0x0F);
+    
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "SCORE", 0x0F);
 
-    b.X = g_Console.getConsoleSize().X / 2 - 3; b.Y = 23;
-    s.X = g_Console.getConsoleSize().X / 2 - 3; s.Y = 25;
-    q.X = g_Console.getConsoleSize().X / 2 - 3; q.Y = 27;
-
-    bb << "START";
-    ss << "SCORES";
-    qq << "QUIT";
-
-    g_Console.writeToBuffer(b, bb.str(), 0x0F);
-    g_Console.writeToBuffer(s, ss.str(), 0x0F);
-    g_Console.writeToBuffer(q, qq.str(), 0x0F);
-
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "QUIT", 0x0F);
+    
+    c.X = 2;
+    c.Y = 28;
+    g_Console.writeToBuffer(c, "Group 11", 0x0F);
+    renderInputEvents();
+    if (g_skKeyEvent[K_ESCAPE].keyDown)
+        return choice = 2;
     if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 22) && (g_mouseEvent.mousePosition.Y <= 23)))
         return choice = 1;
     else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 24) && (g_mouseEvent.mousePosition.Y <= 25)))
@@ -2726,9 +2663,9 @@ void renderUI(void)
         c.X = 47;
         c.Y = 7;
         g_Console.writeToBuffer(c, "Lives");
-        c.X += 3;
+        c.X += 2;
         c.Y += 1;
-        g_Console.writeToBuffer(c, life);
+        g_Console.writeToBuffer(c, to_string(life));
     }
 
     // this part outputs the score
@@ -2737,19 +2674,19 @@ void renderUI(void)
         c.X = 47;
         c.Y = 12;
         g_Console.writeToBuffer(c, "Score");
-        c.X += 3;
+        c.X += 2;
         c.Y += 1;
-        g_Console.writeToBuffer(c, score);
+        g_Console.writeToBuffer(c, to_string(score));
     }
 
     // this part outputs the time
     {
         ss.str("");
-        c.X = 48;
+        c.X = 47;
         c.Y = 17;
-        g_Console.writeToBuffer(c, "Time");
+        g_Console.writeToBuffer(c, "Timer");
 
-        c.X += 1;
+        c.X += 2;
         c.Y += 1;
         ss << std::fixed << std::setprecision(0) << g_dElapsedTime;
         g_Console.writeToBuffer(c, ss.str());
@@ -2765,11 +2702,25 @@ void renderUI(void)
     }
 
     // this part outputs the UI borders
-    for (unsigned int x = 1; x < 29; ++x)
+    for (unsigned int x = 0; x < 3; ++x)
     {
-        c.X = 40;
-        c.Y = x;
-        g_Console.writeToBuffer(c, " ", 0xF0);
+        for (unsigned int y = 0; y < 30; ++y)
+        {
+            if (x == 2)
+                {c.X = 59; c.Y = y;}
+            else
+                {c.X = x * 39; c.Y = y;}
+            g_Console.writeToBuffer(c, " ", 0xF0);
+        }
+    }
+    for (unsigned int x = 0; x < 2; ++x)
+    {
+        for (unsigned int y = 0; y < 60; ++y)
+        {
+            c.X = y;
+            c.Y = x * 29;
+            g_Console.writeToBuffer(c, " ", 0xF0);
+        }
     }
     for (unsigned int x = 1; x < 5; ++x)
     {
@@ -2789,7 +2740,6 @@ void renderUI(void)
             g_Console.writeToBuffer(c, " ", 0xF0);
         }
     }
-
     {
         c.X = 44;
         c.Y = 27;
@@ -2838,7 +2788,7 @@ bool renderResult(void)
 
         c.Y += 2;
         ss.str("");
-        ss << "Score: " /*<< score*/;
+        ss << "Score: " << score;
         g_Console.writeToBuffer(c, ss.str());
     }
 }
