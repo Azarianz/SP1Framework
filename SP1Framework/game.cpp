@@ -30,7 +30,7 @@ SGameChar   BulletEnemy[8];     //Enemy2   Bullet
 SGameChar   BulletEnemy2[8];    //Enemy3 L Bullet
 SGameChar   BulletEnemy3[8];    //Enemy3 R Bullet
 SGameChar   PowerUp;
-SGameChar   Shield[8];
+SGameChar   Shield[12];
 SGameChar   Boss;
 SGameChar   BossBullet[3];
 SGameChar   Destroyed[3];
@@ -241,9 +241,9 @@ void init( void )
     for (int i = 0; i < (sizeof(Rock) / sizeof(Rock[0])); i++)
     {
         Rockhealth[i] = 3;
-        int number = rand() % 36 - 2;
-        Rock[i].m_cLocation.X = xGameSpace - number;
-        Rock[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 29;
+        //int number = rand() % 36 - 2;
+        Rock[i].m_cLocation.X = rand() % (xGameSpace - 10) - 10;
+        Rock[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 40;
 
         
         if (i < difficulty)
@@ -311,6 +311,12 @@ void resetGame(void)
     BulletToMove2 = 5;
     BulletToMove3 = 5;
     play;   //For Sound
+
+    bosshealth = 30;
+    bossCanMove = false;
+    bossTime = start_gameTime + 60;
+    bossTimeMove = 60;
+    bossBulletTime = 60;
 }
 
 #pragma endregion
@@ -692,7 +698,6 @@ void moveBoss()
 
     if (g_dElapsedTime >= bossTimeMove)
     {
-        bossTimeMove = g_dElapsedTime + 0.2;
         //Move Boss(Probably Relocate or make this function for all enemies)
         if (Boss.m_cLocation.Y > 5)
         {
@@ -712,6 +717,7 @@ void moveBoss()
                 Boss.m_cLocation.Y++;
             }
         }
+        bossTimeMove = g_dElapsedTime + 0.2;
     }
 }
 
@@ -806,12 +812,9 @@ bool renderGame()
     checkDestroyed();
     rShield();
     renderSpecial();
+    renderBoss();
+    renderBossBullet();
 
-    if (bossCanMove == true)
-    {
-        renderBoss();
-        renderBossBullet();
-    }
     renderUI();
     if (g_skKeyEvent[K_ESCAPE].keyReleased)
     {
@@ -819,7 +822,7 @@ bool renderGame()
         resetName();
         return false;
     }
-    if (life == 0)
+    if (life <= 0)
     {
         result = 1;
         return true;
@@ -898,10 +901,10 @@ void renderCharacter()
 {
     
     // Draw the location of the character
-    WORD charColor = 0x09;
+    WORD charColor = 0x0B;
     if (g_sChar.m_bActive)
     {
-        charColor = 0x09;
+        charColor = 0x0B;
     }
     g_Console.writeToBuffer(g_sChar.m_cLocation, (char)29, charColor);
 
@@ -1132,7 +1135,7 @@ void renderRock()
         else
         {
             Rock[i].m_bActive = false;
-            Rock[i].m_cLocation.X = xGameSpace / 2;
+            Rock[i].m_cLocation.X = rand() % (xGameSpace - 10) - 10;
             Rock[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 40;
             ekilled++;
             score += 1;
@@ -1156,7 +1159,7 @@ void renderBoss()
     bossPivot.X = Boss.m_cLocation.X - 4;
     bossPivot.Y = Boss.m_cLocation.Y;
 
-    if (bosshealth > 0)
+    if (bosshealth > 0 && bossCanMove == true)
     {
         WORD Color = 0x0D;
         for (int row = 0; row < 4; row++)
@@ -1231,7 +1234,7 @@ void renderBoss()
             bossPivot.Y++;
         }
     }
-    else
+    else if (bosshealth <= 0)
     {
         //Reset Boss Bullets
         for (int i = 0; i < sizeof(BossBullet)/sizeof(BossBullet[0]); i++) 
@@ -1243,7 +1246,7 @@ void renderBoss()
 
         //Reset Boss
         Boss.m_bActive = false;
-        Boss.m_cLocation.X = xGameSpace / 2;
+        Boss.m_cLocation.X = rand() % (xGameSpace - 10) - 10;
         Boss.m_cLocation.Y = g_Console.getConsoleSize().Y - 40;
         ekilled++;
         score += 10;
@@ -1255,7 +1258,7 @@ void renderBoss()
 
 void renderBullet()
 {
-    WORD Color = 0x09;
+    WORD Color = 0x0B;
     if (BulletTest.m_bActive == true)
     {
         if (sSound == true && sCount == 0)
@@ -1337,8 +1340,7 @@ void bossBulletMove()
 {
     if (g_dElapsedTime >= bossBulletTime)
     {
-        bossBulletTime = g_dElapsedTime + 0.1;
-        if (bosshealth > 0)
+        if (bosshealth > 0 && bossCanMove  == true)
         {
             //Normal Enemy Bullet Move
             for (int i = 0; i < 3; i++)
@@ -1360,13 +1362,16 @@ void bossBulletMove()
                 }
             }
         }
-    }
-    else
-    {
-        for (int i = 0; i < 3; ++i)
+
+        else
         {
-            BossBullet[i].m_cLocation = bulletPoints[i];
+            for (int i = 0; i < 3; i++)
+            {
+                BossBullet[i].m_cLocation = bulletPoints[i];
+            }
         }
+
+        bossBulletTime = g_dElapsedTime + 0.1;
     }
 
 }
@@ -2017,23 +2022,34 @@ void rShield()
         Shield[2].m_cLocation.Y = g_sChar.m_cLocation.Y - 1;
 
         Shield[3].m_cLocation.X = g_sChar.m_cLocation.X - 1;
-        Shield[3].m_cLocation.Y = g_sChar.m_cLocation.Y;
+        Shield[3].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
 
-        Shield[4].m_cLocation.X = g_sChar.m_cLocation.X + 1;
-        Shield[4].m_cLocation.Y = g_sChar.m_cLocation.Y;
+        Shield[4].m_cLocation.X = g_sChar.m_cLocation.X;
+        Shield[4].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
 
-        Shield[5].m_cLocation.X = g_sChar.m_cLocation.X - 1;
+        Shield[5].m_cLocation.X = g_sChar.m_cLocation.X + 1;
         Shield[5].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
 
-        Shield[6].m_cLocation.X = g_sChar.m_cLocation.X;
-        Shield[6].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
+        Shield[6].m_cLocation.X = g_sChar.m_cLocation.X - 2;
+        Shield[6].m_cLocation.Y = g_sChar.m_cLocation.Y - 1;
 
-        Shield[7].m_cLocation.X = g_sChar.m_cLocation.X + 1;
-        Shield[7].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
+        Shield[7].m_cLocation.X = g_sChar.m_cLocation.X - 2;
+        Shield[7].m_cLocation.Y = g_sChar.m_cLocation.Y;
 
-        for (int i = 0; i < 8; i++)
+        Shield[8].m_cLocation.X = g_sChar.m_cLocation.X - 2;
+        Shield[8].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
+
+        Shield[9].m_cLocation.X = g_sChar.m_cLocation.X + 2;
+        Shield[9].m_cLocation.Y = g_sChar.m_cLocation.Y - 1;
+
+        Shield[10].m_cLocation.X = g_sChar.m_cLocation.X + 2;
+        Shield[10].m_cLocation.Y = g_sChar.m_cLocation.Y;
+
+        Shield[11].m_cLocation.X = g_sChar.m_cLocation.X + 2;
+        Shield[11].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
+        for (int i = 0; i < 12; i++)
         {
-            g_Console.writeToBuffer(Shield[i].m_cLocation, 'X',Color);
+            g_Console.writeToBuffer(Shield[i].m_cLocation, 'X', Color);
         }
     }
 
@@ -2043,7 +2059,7 @@ void cShield()
 {
     if (PowerEaten == true && PowerUp.m_bActive == false && Special == 4)
     {
-        for (int s = 0; s < 8; s++)
+        for (int s = 0; s < 12; s++)
         {
             for (int e = 0; e < difficulty; e++)
             {
@@ -2204,7 +2220,7 @@ void cBomb()
 
 void rPModel()
 {
-    WORD Color = 0x09;
+    WORD Color = 0x0B;
 
     p_Model[0].m_cLocation.X = g_sChar.m_cLocation.X - 1; //Left Wing
     p_Model[0].m_cLocation.Y = g_sChar.m_cLocation.Y;
@@ -2408,7 +2424,7 @@ void renderSpecial()
         }
         else if (Special == 2)
         {
-            WORD Color = 0x02;
+            WORD Color = 0x0A;
             SpecialText = "Health";
             g_Console.writeToBuffer(PowerUp.m_cLocation, 'H',Color);
         }
@@ -2420,7 +2436,7 @@ void renderSpecial()
         }
         else if (Special == 4)
         {
-            WORD Color = 0x01;
+            WORD Color = 0x0B;
             SpecialText = "Shield";
             g_Console.writeToBuffer(PowerUp.m_cLocation, 'S',Color);
         }

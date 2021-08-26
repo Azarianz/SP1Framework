@@ -56,7 +56,8 @@ void mainLoop( void )
                     break;
             }
             resetTimer();
-            resetGame();
+            //resetGame();
+            init();
             g_Timer.startTimer();
             while (true)
             {
