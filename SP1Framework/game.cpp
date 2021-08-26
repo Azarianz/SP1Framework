@@ -33,6 +33,8 @@ SGameChar   PowerUp;
 SGameChar   Shield[8];
 SGameChar   Boss;
 SGameChar   BossBullet[3];
+SGameChar   Destroyed[3];
+SGameChar   p_Model[2];
 
 double timeToMove = 5;
 double timeToMove2 = 5;
@@ -43,12 +45,14 @@ double timeToMove6 = 5;
 double BulletToMove = 5;
 double BulletToMove2 = 5;
 double BulletToMove3 = 5;
+double DodgeCounter = 1;
 int  ekilled = 0;
 int  score = 0;
 int  number = rand() % 37 - 2;
 bool PowerEaten = false;
 bool shoot = false;
-
+bool pDodge = false;
+bool destroyed[4] = { false, false, false, false };
 bool play = PlaySound(TEXT("audioWater.wav"), NULL, SND_LOOP | SND_ASYNC);
 bool sSound = false;
 int  sCount = 0;
@@ -82,7 +86,7 @@ int eventCount = 0; // mitigates the problem of keypresses being pressed twice
 int result = 0; // used to determine whether player win or lose
 
 EGAMESTATES g_eGameState = S_SPLASHSCREEN; // initial state
-
+    
 // Console object
 Console g_Console(60, 30, "Space Wars");
 int xGameSpace = 30;    //X-axis Gamespace
@@ -98,6 +102,12 @@ int xGameSpace = 30;    //X-axis Gamespace
 //--------------------------------------------------------------
 void init( void )
 {
+    destroyed[0] = false;
+    destroyed[1] = false;
+    destroyed[2] = false;
+    destroyed[3] = false;
+
+    
     sSound = false;
     start_gameTime = 0;
     score = 0;
@@ -409,6 +419,7 @@ void gameplayKBHandler(const KEY_EVENT_RECORD& keyboardEvent)
     case 'X': key = K_X; break;
     case 'Y': key = K_Y; break;
     case 'Z': key = K_Z; break;
+    case VK_SHIFT: key = K_LSHIFT; break;
     }
     // a key pressed event would be one with bKeyDown == true
     // a key released event would be one with bKeyDown == false
@@ -531,8 +542,10 @@ void updateGame()       // gameplay logic
     EnemyBMove2();
     EnemyBMove3();
     checkCollision();
-    checkKilled();  
+    checkKilled();
+    checkDestroyed();
 
+    Dodge();
     movePowerUp();
     mMultishot();
     cMultishot();
@@ -593,6 +606,10 @@ void moveCharacter()
     if (g_skKeyEvent[K_SPACE].keyReleased)
     {
         sSound = true;
+    }
+    if (g_skKeyEvent[K_LSHIFT].keyReleased)
+    {
+        pDodge = true;
     }
 
    
@@ -755,8 +772,10 @@ bool renderGame()
     renderEnemy3();
     renderRock();
     rMultishot();
+    checkDestroyed();
     rShield();
     renderSpecial();
+
     if (bossCanMove == true)
     {
         renderBoss();
@@ -846,13 +865,16 @@ void renderMap()
 
 void renderCharacter()
 {
+    
     // Draw the location of the character
-    WORD charColor = 0x0C;
+    WORD charColor = 0x09;
     if (g_sChar.m_bActive)
     {
-        charColor = 0x0A;
+        charColor = 0x09;
     }
     g_Console.writeToBuffer(g_sChar.m_cLocation, (char)3, charColor);
+
+    rPModel();
 }
 
 void renderFramerate()
@@ -1028,6 +1050,10 @@ void renderRock()
                             BulletTest.m_cLocation.X = g_sChar.m_cLocation.X;
                             BulletTest.m_cLocation.Y = g_sChar.m_cLocation.Y - 1; // resets the position to front of space ship
                             BulletTest.m_bActive = false; // stops rendering
+        
+                            sCount = 1;
+                            sSound = false;
+                            
                         }
                     }
 
@@ -1055,6 +1081,7 @@ void renderRock()
                                     }
 
                                     Multishot[i].m_bActive = false;
+                                    sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
                                 }
 
                             }
@@ -1125,6 +1152,12 @@ void renderBoss()
                         BulletTest.m_cLocation.X = g_sChar.m_cLocation.X;
                         BulletTest.m_cLocation.Y = g_sChar.m_cLocation.Y - 1; // resets the position to front of space ship
                         BulletTest.m_bActive = false; // stops rendering
+                        if (sSound == true && sCount == 0)
+                        {
+                            sndPlaySound(L"shoot.wav", SND_FILENAME | SND_ASYNC);
+                            sCount = 1;
+                            sSound = false;
+                        }
                     }
                 }
 
@@ -1187,15 +1220,16 @@ void renderBoss()
 
 void renderBullet()
 {
+    WORD Color = 0x09;
     if (BulletTest.m_bActive == true)
     {
         if (sSound == true && sCount == 0)
         {
-            Beep(500, 50);
+            sndPlaySound(L"shoot.wav", SND_FILENAME | SND_ASYNC);
             sCount = 1;
             sSound = false;
         }
-        g_Console.writeToBuffer(BulletTest.m_cLocation, (char)6);
+        g_Console.writeToBuffer(BulletTest.m_cLocation, (char)6, Color);
         //BulletTest.m_cLocation.Y++;
     }
 }
@@ -1219,11 +1253,12 @@ void RbulletEnemy()
 {
     for (int i = 0; i < difficulty; i++)
     {
+        WORD Color = 0x0C;
         if (difficulty >= 3)
         {
             if (BulletEnemy[i].m_bActive == true)
             {
-                g_Console.writeToBuffer(BulletEnemy[i].m_cLocation, (char)6);
+                g_Console.writeToBuffer(BulletEnemy[i].m_cLocation, (char)25, Color);
                 //BulletEnemy[i].m_cLocation.Y += 25 * g_dDeltaTime;
             }
         }
@@ -1428,6 +1463,7 @@ void RockMove()
 }
 void checkCollision()
 {
+    WORD Color = 0x1AF;
     //for player bullets
     if (BulletTest.m_bActive == true)
     {
@@ -1435,6 +1471,13 @@ void checkCollision()
         {
             if (BulletTest.m_cLocation.X == Enemy[i].m_cLocation.X && BulletTest.m_cLocation.Y == Enemy[i].m_cLocation.Y)
             {
+                destroyed[0] = true;
+
+                Destroyed[0].m_cLocation.X = Enemy[i].m_cLocation.X;
+                Destroyed[0].m_cLocation.Y = Enemy[i].m_cLocation.Y;
+
+
+
                 Enemy[i].m_bActive = false;
                 Enemy[i].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5; //from 4 - 34
                 Enemy[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 29;
@@ -1448,10 +1491,15 @@ void checkCollision()
                 score++;
                 sCount = 0;
 
-                Beep(300, 50);
+                sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
             }
             if (BulletTest.m_cLocation.X == Enemy2[i].m_cLocation.X && BulletTest.m_cLocation.Y == Enemy2[i].m_cLocation.Y)
             {
+                destroyed[1] = true;
+
+                Destroyed[1].m_cLocation.X = Enemy2[i].m_cLocation.X;
+                Destroyed[1].m_cLocation.Y = Enemy2[i].m_cLocation.Y;
+
                 Enemy2[i].m_bActive = false;
                 Enemy2[i].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
                 Enemy2[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 32;
@@ -1464,10 +1512,15 @@ void checkCollision()
                 ekilled++;
                 score++;
                 sCount = 0;
-                Beep(300, 50);
+                sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
             }
             if (BulletTest.m_cLocation.X == Enemy3[i].m_cLocation.X && BulletTest.m_cLocation.Y == Enemy3[i].m_cLocation.Y)
             {
+                destroyed[2] = true;
+
+                Destroyed[2].m_cLocation.X = Enemy3[i].m_cLocation.X;
+                Destroyed[2].m_cLocation.Y = Enemy3[i].m_cLocation.Y;
+
                 Enemy3[i].m_bActive = false;
                 Enemy3[i].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
                 Enemy3[i].m_cLocation.Y = g_Console.getConsoleSize().Y - rand() % (30 - 25) - 25;
@@ -1479,6 +1532,7 @@ void checkCollision()
 
                 ekilled++;
                 score++;
+                sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
             }
         }
 
@@ -1491,38 +1545,57 @@ void checkCollision()
         {
             if (BulletEnemy[i].m_bActive == true)
             {
-                if (BulletEnemy[i].m_cLocation.X == g_sChar.m_cLocation.X
-                    && BulletEnemy[i].m_cLocation.Y == g_sChar.m_cLocation.Y)
+                if ((BulletEnemy[i].m_cLocation.X == g_sChar.m_cLocation.X && BulletEnemy[i].m_cLocation.Y == g_sChar.m_cLocation.Y) ||
+                    (BulletEnemy[i].m_cLocation.X == g_sChar.m_cLocation.X - 1 && BulletEnemy[i].m_cLocation.Y == g_sChar.m_cLocation.Y) ||
+                    (BulletEnemy[i].m_cLocation.X == g_sChar.m_cLocation.X + 1 && BulletEnemy[i].m_cLocation.Y == g_sChar.m_cLocation.Y))
                 {
                     life -= 1;
                     g_sChar.m_bActive = false;
                     g_sChar.m_cLocation.X = xGameSpace / 2;
                     g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
                     g_sChar.m_bActive = true;
+
+                    BulletEnemy[i].m_bActive = false;
+                    BulletEnemy[i].m_cLocation.X = Enemy2[i].m_cLocation.X;
+                    BulletEnemy[i].m_cLocation.Y = Enemy2[i].m_cLocation.Y + 1;
+                    BulletEnemy[i].m_bActive = true;
                 }
             }
             if (BulletEnemy2[i].m_bActive == true)
             {
-                if (BulletEnemy2[i].m_cLocation.X == g_sChar.m_cLocation.X
-                    && BulletEnemy2[i].m_cLocation.Y == g_sChar.m_cLocation.Y)
+                if ((BulletEnemy2[i].m_cLocation.X == g_sChar.m_cLocation.X && BulletEnemy2[i].m_cLocation.Y == g_sChar.m_cLocation.Y) ||
+                    (BulletEnemy2[i].m_cLocation.X == g_sChar.m_cLocation.X - 1 && BulletEnemy2[i].m_cLocation.Y == g_sChar.m_cLocation.Y) ||
+                    (BulletEnemy2[i].m_cLocation.X == g_sChar.m_cLocation.X + 1 && BulletEnemy2[i].m_cLocation.Y == g_sChar.m_cLocation.Y))
                 {
                     life -= 1;
                     g_sChar.m_bActive = false;
                     g_sChar.m_cLocation.X = xGameSpace / 2;
                     g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
                     g_sChar.m_bActive = true;
+
+
+                    BulletEnemy2[i].m_bActive = false;
+                    BulletEnemy2[i].m_cLocation.X = Enemy2[i].m_cLocation.X;
+                    BulletEnemy2[i].m_cLocation.Y = Enemy2[i].m_cLocation.Y + 1;
+                    BulletEnemy2[i].m_bActive = true;
                 }
             }
             if (BulletEnemy3[i].m_bActive == true)
             {
-                if (BulletEnemy3[i].m_cLocation.X == g_sChar.m_cLocation.X
-                    && BulletEnemy3[i].m_cLocation.Y == g_sChar.m_cLocation.Y)
+                if ((BulletEnemy3[i].m_cLocation.X == g_sChar.m_cLocation.X && BulletEnemy3[i].m_cLocation.Y == g_sChar.m_cLocation.Y) ||
+                    (BulletEnemy3[i].m_cLocation.X == g_sChar.m_cLocation.X - 1 && BulletEnemy3[i].m_cLocation.Y == g_sChar.m_cLocation.Y) ||
+                    (BulletEnemy3[i].m_cLocation.X == g_sChar.m_cLocation.X + 1 && BulletEnemy3[i].m_cLocation.Y == g_sChar.m_cLocation.Y))
                 {
                     life -= 1;
                     g_sChar.m_bActive = false;
                     g_sChar.m_cLocation.X = xGameSpace / 2;
                     g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
                     g_sChar.m_bActive = true;
+
+                    BulletEnemy3[i].m_bActive = false;
+                    BulletEnemy3[i].m_cLocation.X = Enemy2[i].m_cLocation.X;
+                    BulletEnemy3[i].m_cLocation.Y = Enemy2[i].m_cLocation.Y + 1;
+                    BulletEnemy3[i].m_bActive = true;
                 }
             }
         }
@@ -1583,7 +1656,7 @@ void checkCollision()
             g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
             g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
             g_sChar.m_bActive = true;
-            Beep(175, 70);
+            sndPlaySound(L"pdeath.wav", SND_FILENAME | SND_ASYNC);
         }
         if (g_sChar.m_cLocation.X == Enemy2[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy2[i].m_cLocation.Y)
         {
@@ -1594,6 +1667,7 @@ void checkCollision()
                 g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
                 g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
                 g_sChar.m_bActive = true;
+                sndPlaySound(L"pdeath.wav", SND_FILENAME | SND_ASYNC);
             }
         }
         if (g_sChar.m_cLocation.X == Enemy3[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy3[i].m_cLocation.Y)
@@ -1605,6 +1679,7 @@ void checkCollision()
                 g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
                 g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
                 g_sChar.m_bActive = true;
+                sndPlaySound(L"pdeath.wav", SND_FILENAME | SND_ASYNC);
             }
         }
 
@@ -1687,11 +1762,12 @@ void destroyEnemy()
 
 void rMultishot()
 {
+    WORD Color = 0x09;
     for (int i = 0; i < 2; i++)
     {
         if (Multishot[i].m_bActive == true && PowerEaten == true && PowerUp.m_bActive == false && Special == 1)
         {
-            g_Console.writeToBuffer(Multishot[i].m_cLocation, (char)6);
+            g_Console.writeToBuffer(Multishot[i].m_cLocation, (char)6,Color);
             Multishot[i].m_cLocation.Y += 25 * g_dDeltaTime;
         }
     }
@@ -1763,6 +1839,10 @@ void cMultishot()
                     {
                         if (Multishot[i].m_cLocation.X == Enemy[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy[e].m_cLocation.Y)
                         {
+                            destroyed[0] = true;
+
+                            Destroyed[0].m_cLocation.X = Enemy[e].m_cLocation.X;
+                            Destroyed[0].m_cLocation.Y = Enemy[e].m_cLocation.Y;
 
                             Enemy[e].m_bActive = false;
 
@@ -1772,11 +1852,16 @@ void cMultishot()
 
                             ekilled++;
                             score++;
-                            Beep(350, 50);
+                            sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
                         }
 
                         if (Multishot[i].m_cLocation.X == Enemy2[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy2[e].m_cLocation.Y)
                         {
+                            destroyed[1] = true;
+
+                            Destroyed[1].m_cLocation.X = Enemy2[e].m_cLocation.X;
+                            Destroyed[1].m_cLocation.Y = Enemy2[e].m_cLocation.Y;
+
                             Enemy2[e].m_bActive = false;
 
                             Enemy2[e].m_cLocation.X = xGameSpace - rand() % 38 - 2;
@@ -1785,11 +1870,17 @@ void cMultishot()
 
                             ekilled++;
                             score++;
-                            Beep(350, 50);
+                            sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
+
                         }
 
                         if (Multishot[i].m_cLocation.X == Enemy3[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy3[e].m_cLocation.Y)
                         {
+                            destroyed[2] = true;
+
+                            Destroyed[2].m_cLocation.X = Enemy3[e].m_cLocation.X;
+                            Destroyed[2].m_cLocation.Y = Enemy3[e].m_cLocation.Y;
+
                             Enemy3[e].m_bActive = false;
 
                             Enemy3[e].m_cLocation.X = xGameSpace - rand() % 38 - 2;
@@ -1798,7 +1889,7 @@ void cMultishot()
 
                             ekilled++;
                             score++;
-                            Beep(350, 50);
+                            sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
                         }
                         if (Multishot[i].m_cLocation.X == Rock[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Rock[e].m_cLocation.Y)
                         {
@@ -1810,7 +1901,7 @@ void cMultishot()
 
                             ekilled++;
                             score++;
-                            Beep(350, 50);
+                            sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
                         }
 
                         if (i == 0)
@@ -1891,6 +1982,11 @@ void cShield()
             {
                 if (Shield[s].m_cLocation.X == Enemy[e].m_cLocation.X && Shield[s].m_cLocation.Y == Enemy[e].m_cLocation.Y)
                 {
+                    destroyed[0] = true;
+
+                    Destroyed[0].m_cLocation.X = Enemy[e].m_cLocation.X;
+                    Destroyed[0].m_cLocation.Y = Enemy[e].m_cLocation.Y;
+
                     Enemy[e].m_bActive = false;
 
                     Enemy[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
@@ -1899,11 +1995,16 @@ void cShield()
 
                     ekilled++;
                     score++;
-                    Beep(440, 70);
+                    sndPlaySound(L"deflect.wav", SND_FILENAME | SND_ASYNC);
                 }
 
                 if (Shield[s].m_cLocation.X == Enemy2[e].m_cLocation.X && Shield[s].m_cLocation.Y == Enemy2[e].m_cLocation.Y)
                 {
+                    destroyed[1] = true;
+
+                    Destroyed[1].m_cLocation.X = Enemy2[e].m_cLocation.X;
+                    Destroyed[1].m_cLocation.Y = Enemy2[e].m_cLocation.Y;
+
                     Enemy2[e].m_bActive = false;
 
                     Enemy2[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
@@ -1912,11 +2013,16 @@ void cShield()
 
                     ekilled++;
                     score++;
-                    Beep(440, 70);
+                    sndPlaySound(L"deflect.wav", SND_FILENAME | SND_ASYNC);
                 }
 
                 if (Shield[s].m_cLocation.X == Enemy3[e].m_cLocation.X && Shield[s].m_cLocation.Y == Enemy3[e].m_cLocation.Y)
                 {
+                    destroyed[2] = true;
+
+                    Destroyed[2].m_cLocation.X = Enemy3[e].m_cLocation.X;
+                    Destroyed[2].m_cLocation.Y = Enemy3[e].m_cLocation.Y;
+
                     Enemy3[e].m_bActive = false;
 
                     Enemy3[e].m_cLocation.X = xGameSpace - rand() % (35-5) - 5;
@@ -1925,7 +2031,7 @@ void cShield()
 
                     ekilled++;
                     score++;
-                    Beep(440, 70);
+                    sndPlaySound(L"deflect.wav", SND_FILENAME | SND_ASYNC);
                 }
 
                 if (Shield[s].m_cLocation.X == BulletEnemy[e].m_cLocation.X && Shield[s].m_cLocation.Y == BulletEnemy[e].m_cLocation.Y)
@@ -1937,7 +2043,7 @@ void cShield()
                     BulletEnemy[e].m_bActive = true;
 
                     ekilled++;
-                    Beep(530, 70);
+                    sndPlaySound(L"deflect.wav", SND_FILENAME | SND_ASYNC);
                 }
                 if (Shield[s].m_cLocation.X == Rock[e].m_cLocation.X && Shield[s].m_cLocation.Y == Rock[e].m_cLocation.Y)
                 {
@@ -1948,7 +2054,7 @@ void cShield()
                     Rock[e].m_bActive = true;
 
                     ekilled++;
-                    Beep(530, 70);
+                    sndPlaySound(L"deflect.wav", SND_FILENAME | SND_ASYNC);
                 }
             }
             for (int i = 0; i < sizeof(BossBullet) / sizeof(BossBullet[0]); i++)
@@ -1961,7 +2067,7 @@ void cShield()
                     BossBullet[i].m_bActive = true; // stops rendering
 
                     ekilled++;
-                    Beep(440, 70);
+                    sndPlaySound(L"deflect.wav", SND_FILENAME | SND_ASYNC);
                 }
             }
         }
@@ -1986,6 +2092,7 @@ void cBomb()
     {
         for (int e = 0; e < difficulty; e++)
         {
+            destroyed[3] = true;
             Enemy[e].m_bActive = false;
             Enemy2[e].m_bActive = false;
             BulletEnemy[e].m_bActive = false;
@@ -2024,7 +2131,139 @@ void cBomb()
 
         PowerEaten = false;
         ekilled = 0;
-        Beep(200, 100);
+        sndPlaySound(L"dodge.wav", SND_FILENAME | SND_ASYNC);
+    }
+}
+
+void rPModel()
+{
+    WORD Color = 0x09;
+
+    p_Model[0].m_cLocation.X = g_sChar.m_cLocation.X - 1; //Left Wing
+    p_Model[0].m_cLocation.Y = g_sChar.m_cLocation.Y;
+
+    p_Model[1].m_cLocation.X = g_sChar.m_cLocation.X + 1; // Right Wing
+    p_Model[1].m_cLocation.Y = g_sChar.m_cLocation.Y;
+
+    if (g_sChar.m_bActive == true)
+    {
+        for (int i = 0; i < 2; i++)
+        {
+            g_Console.writeToBuffer(p_Model[i].m_cLocation, (char)18, Color);
+        }
+    }
+}
+
+void checkDestroyed()
+{
+    WORD Color = 0x1Ad;
+
+    if (destroyed[0] == true)
+    {
+        g_Console.writeToBuffer(Destroyed[0].m_cLocation, "*", Color);
+        destroyed[0] = false;
+    }
+
+    if (destroyed[1] == true)
+    {
+        g_Console.writeToBuffer(Destroyed[1].m_cLocation, "*", Color);
+        destroyed[1] = false;
+    }
+    if (destroyed[2] == true)
+    {
+        g_Console.writeToBuffer(Destroyed[2].m_cLocation, "*", Color);
+        destroyed[2] = false;
+    }
+    if (destroyed[3] == true)
+    {
+        for (int i = 0; i < difficulty; i++)
+        {
+            g_Console.writeToBuffer(Enemy[i].m_cLocation, "*", Color);
+            g_Console.writeToBuffer(Enemy2[i].m_cLocation, "*", Color);
+            g_Console.writeToBuffer(Enemy3[i].m_cLocation, "*", Color);
+        }
+        destroyed[3] = false;
+    }
+}
+
+void Dodge()
+{
+    COORD text;
+    text.X = g_Console.getConsoleSize().X - 29;
+    text.Y = g_Console.getConsoleSize().Y - 2;
+
+    g_Console.writeToBuffer(text, "Dodge Meter: " + to_string(DodgeCounter));
+
+    if (DodgeCounter == 1)
+    {
+        if (g_skKeyEvent[K_UP].keyDown && pDodge == true)
+        {
+            if ((g_sChar.m_cLocation.Y - 1) > 1)
+            {
+                g_sChar.m_cLocation.Y = g_sChar.m_cLocation.Y - 2;
+            }
+            else
+            {
+                g_sChar.m_cLocation.Y = 1;
+            }
+            DodgeCounter = 0;
+            pDodge = false;
+            sndPlaySound(L"dodge.wav", SND_FILENAME | SND_ASYNC);
+        }
+        if (g_skKeyEvent[K_DOWN].keyDown && pDodge == true)
+        {
+            if ((g_sChar.m_cLocation.Y + 1) < 28)
+            {
+                g_sChar.m_cLocation.Y = g_sChar.m_cLocation.Y + 2;
+            }
+            else
+            {
+                g_sChar.m_cLocation.Y = 28;
+            }
+            DodgeCounter = 0;
+            pDodge = false;
+            sndPlaySound(L"dodge.wav", SND_FILENAME | SND_ASYNC);
+        }
+        if (g_skKeyEvent[K_RIGHT].keyDown && pDodge == true)
+        {
+            if ((g_sChar.m_cLocation.X + 1) < 38)
+            {
+                g_sChar.m_cLocation.X = g_sChar.m_cLocation.X + 3;
+            }
+            else
+            {
+                g_sChar.m_cLocation.X = 38;
+            }
+            DodgeCounter = 0;
+            pDodge = false;
+            sndPlaySound(L"dodge.wav", SND_FILENAME | SND_ASYNC);
+        }
+        if (g_skKeyEvent[K_LEFT].keyDown && pDodge == true)
+        {
+            if ((g_sChar.m_cLocation.X - 1) > 1)
+            {
+                g_sChar.m_cLocation.X = g_sChar.m_cLocation.X - 3;
+            }
+            else
+            {
+                g_sChar.m_cLocation.X = 1;
+            }
+            DodgeCounter = 0;
+            pDodge = false;
+            sndPlaySound(L"dodge.wav", SND_FILENAME | SND_ASYNC);
+        }
+    }
+    else
+    {
+        if (DodgeCounter > 1)
+        {
+            DodgeCounter = 1;
+        }
+        else
+        {
+            DodgeCounter = DodgeCounter + 0.006;
+        }
+
     }
 }
 
@@ -2074,7 +2313,9 @@ void movePowerUp()
 
     }
 
-    if ((PowerUp.m_cLocation.Y == g_sChar.m_cLocation.Y && PowerUp.m_cLocation.X == g_sChar.m_cLocation.X) || PowerUp.m_cLocation.Y == 29)
+    if ((PowerUp.m_cLocation.Y == g_sChar.m_cLocation.Y && PowerUp.m_cLocation.X == g_sChar.m_cLocation.X) || PowerUp.m_cLocation.Y == 29 ||
+        (PowerUp.m_cLocation.Y == g_sChar.m_cLocation.Y && PowerUp.m_cLocation.X == g_sChar.m_cLocation.X - 1) ||
+        (PowerUp.m_cLocation.Y == g_sChar.m_cLocation.Y && PowerUp.m_cLocation.X == g_sChar.m_cLocation.X + 1))
     {
         if (PowerUp.m_cLocation.Y == 29)
         {
@@ -2094,23 +2335,27 @@ void renderSpecial()
     {
         if (Special == 1)
         {
+            WORD Color = 0x0B;
             SpecialText = "Multishot";
-            g_Console.writeToBuffer(PowerUp.m_cLocation, 'M');
+            g_Console.writeToBuffer(PowerUp.m_cLocation, 'M',Color);
         }
         else if (Special == 2)
         {
+            WORD Color = 0x0A;
             SpecialText = "Health";
-            g_Console.writeToBuffer(PowerUp.m_cLocation, 'H');
+            g_Console.writeToBuffer(PowerUp.m_cLocation, 'H',Color);
         }
         else if (Special == 3)
         {
+            WORD Color = 0x0F;
             SpecialText = "Bomb";
-            g_Console.writeToBuffer(PowerUp.m_cLocation, 'B');
+            g_Console.writeToBuffer(PowerUp.m_cLocation, 'B',Color);
         }
         else if (Special == 4)
         {
+            WORD Color = 0x0E;
             SpecialText = "Shield";
-            g_Console.writeToBuffer(PowerUp.m_cLocation, 'S');
+            g_Console.writeToBuffer(PowerUp.m_cLocation, 'S',Color);
         }
 
     }

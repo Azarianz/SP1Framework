@@ -37,6 +37,7 @@ enum EKEYS
     K_A, K_B, K_C, K_D, K_E, K_F, K_G, K_H, K_I,
     K_J, K_K, K_L, K_M, K_N, K_O, K_P, K_Q, K_R,
     K_S, K_T, K_U, K_V, K_W, K_X, K_Y, K_Z,
+    K_LSHIFT,
     K_COUNT
 };
 
@@ -104,7 +105,8 @@ void renderSpecial();
 void movePowerUp();
 void checkKilled();
 
-//Multishot
+//
+
 void rMultishot();
 void mMultishot();
 void cMultishot();
@@ -118,6 +120,15 @@ void cHealth();
 
 //Bomb
 void cBomb();
+
+//Player Model
+void rPModel();
+
+//Destruction
+void checkDestroyed();
+
+//Dodge
+void Dodge();
 
 void renderDifficulty(void);
 // here are the added functions for UI/UX
