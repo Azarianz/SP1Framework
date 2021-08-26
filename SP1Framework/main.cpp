@@ -56,6 +56,7 @@ void mainLoop( void )
                     break;
             }
             resetTimer();
+            resetGame();
             g_Timer.startTimer();
             while (true)
             {
@@ -63,6 +64,7 @@ void mainLoop( void )
                     break;
                 else
                     getInput();
+                    
                     render();
                     update(g_Timer.getElapsedTime());
                     g_Timer.waitUntil(gc_uFrameTime);

@@ -294,6 +294,25 @@ void shutdown( void )
     g_Console.clearBuffer();
 }
 
+void resetGame(void)
+{
+    sSound = false;
+    start_gameTime = 0;
+    score = 0;
+    life = 3;
+    difficulty = 2;
+    timeToMove = 5;
+    timeToMove2 = 5;
+    timeToMove3 = 5;
+    timeToMove4 = 5;
+    timeToMove5 = 5;
+    timeToMove6 = 5;
+    BulletToMove = 5;
+    BulletToMove2 = 5;
+    BulletToMove3 = 5;
+    play;   //For Sound
+}
+
 #pragma endregion
 
 #pragma region Handlers
@@ -755,6 +774,18 @@ void renderSplashScreen()  // renders the splash screen
     c.Y += 2;
     c.X = g_Console.getConsoleSize().X / 2 - 9;
     g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x0F);
+
+    c.X = g_Console.getConsoleSize().X / 2 - 8;
+    c.Y += 3;
+    g_Console.writeToBuffer(c, "Power Ups", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "M : Multishot", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "H : Health Regen", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "B : Bomb", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "S : Shield", 0x0F);
 }
 
 bool renderGame()
@@ -1300,7 +1331,7 @@ void bossBulletMove()
     if (g_dElapsedTime >= bossBulletTime)
     {
         bossBulletTime = g_dElapsedTime + 0.1;
-        if (bosshealth > 0 && bossCanMove == true)
+        if (bosshealth > 0)
         {
             //Normal Enemy Bullet Move
             for (int i = 0; i < 3; i++)
@@ -1321,6 +1352,13 @@ void bossBulletMove()
                     BossBullet[i].m_cLocation = bulletPoints[i];
                 }
             }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            BossBullet[i].m_cLocation = bulletPoints[i];
         }
     }
 
@@ -3007,7 +3045,6 @@ int renderName(void)
 
 void renderUI(void)
 {
-    std::ostringstream ss;
     COORD c;
 
     // this part renders the player's name
@@ -3024,7 +3061,6 @@ void renderUI(void)
 
     // this part outputs the lives
     {
-        ss.str("");
         c.X = 47;
         c.Y = 7;
         g_Console.writeToBuffer(c, "Lives");
@@ -3035,7 +3071,6 @@ void renderUI(void)
 
     // this part outputs the score
     {
-        ss.str("");
         c.X = 47;
         c.Y = 12;
         g_Console.writeToBuffer(c, "Score");
@@ -3046,38 +3081,35 @@ void renderUI(void)
 
     // this part outputs the time
     {
-        ss.str("");
         c.X = 47;
         c.Y = 17;
-        g_Console.writeToBuffer(c, "Timer");
+        g_Console.writeToBuffer(c, "Dodge");
 
         c.X += 2;
         c.Y += 1;
-        ss << std::fixed << std::setprecision(0) << g_dElapsedTime;
-        g_Console.writeToBuffer(c, ss.str());
-
+        if (DodgeCounter != 1)
+        {
+            c.X -= 5;
+            g_Console.writeToBuffer(c, "Cooling Down");
+        }
+        else
+        {
+            c.X -= 2;
+            g_Console.writeToBuffer(c, "Ready");
+        }
     }
 
     // this part outputs the powerup being used
     {
-        ss.str("");
-        c.X = 46;
+        c.X = 45;
         c.Y = 22;
         g_Console.writeToBuffer(c, "PowerUps");
         c.Y += 2;
         c.X += 1;
         if ((Special == 1) && (PowerEaten == true))
         {
-            c.X -= 3;
+            c.X -= 1;
             g_Console.writeToBuffer(c, "Multi-Shot", 0x0F);
-        }
-        else if ((Special == 2) && (PowerEaten == true))
-        {
-            g_Console.writeToBuffer(c, "Health", 0x0F);
-        }
-        else if ((Special == 3) && (PowerEaten == true))
-        {
-            g_Console.writeToBuffer(c, "Bomb", 0x0F);
         }
         else if ((Special == 4) && (PowerEaten == true))
         {
