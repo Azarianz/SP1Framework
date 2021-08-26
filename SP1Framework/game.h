@@ -98,6 +98,7 @@ void RockMove();
 void bossBulletMove();
 void checkCollision();
 void renderGameInfo();
+void destroyEnemy();
 
 void renderSpecial();
 void movePowerUp();
@@ -118,7 +119,7 @@ void cHealth();
 //Bomb
 void cBomb();
 
-
+void renderDifficulty(void);
 // here are the added functions for UI/UX
 
 void consoleBG(void); // this changes the console color

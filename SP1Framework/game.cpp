@@ -484,19 +484,19 @@ void updateGame()       // gameplay logic
     if (start_gameTime != 0) 
     {   
         //Spawn a new enemy everytime boss dies
-        if (g_dElapsedTime >= start_gameTime + 60 && g_dElapsedTime < start_gameTime + 120)
+        if (g_dElapsedTime >= start_gameTime + 45 && g_dElapsedTime < start_gameTime + 90)
         {
             difficulty = 3;
         }
-        else if (g_dElapsedTime >= start_gameTime + 180 && g_dElapsedTime < start_gameTime + 240)
+        else if (g_dElapsedTime >= start_gameTime + 90 && g_dElapsedTime < start_gameTime + 135)
         {
             difficulty = 4;
         }
-        else if (g_dElapsedTime >= start_gameTime + 300 && g_dElapsedTime < start_gameTime + 360)
+        else if (g_dElapsedTime >= start_gameTime + 135 && g_dElapsedTime < start_gameTime + 180)
         {
             difficulty = 6;
         }
-        else if (g_dElapsedTime >= start_gameTime + 360)
+        else if (g_dElapsedTime >= start_gameTime + 180)
         {
             difficulty = 8;
         }
@@ -562,7 +562,7 @@ void moveCharacter()
     if (g_skKeyEvent[K_UP].keyDown && g_sChar.m_cLocation.Y > 1)
     {
         //Beep(1440, 30);
-        g_sChar.m_cLocation.Y--;       
+        g_sChar.m_cLocation.Y--;
     }
     if (g_skKeyEvent[K_LEFT].keyDown && g_sChar.m_cLocation.X > 1)
     {
@@ -577,7 +577,11 @@ void moveCharacter()
     if (g_skKeyEvent[K_RIGHT].keyDown && g_sChar.m_cLocation.X < g_Console.getConsoleSize().X - 2)
     {
         //Beep(1440, 30);
-        g_sChar.m_cLocation.X++;        
+        
+        if (g_sChar.m_cLocation.X == 38)
+            g_sChar.m_cLocation.X = g_sChar.m_cLocation.X;
+        else
+            g_sChar.m_cLocation.X++;
     }
     if (g_skKeyEvent[K_SPACE].keyDown)
     {
@@ -586,7 +590,7 @@ void moveCharacter()
         Multishot[1].m_bActive = true;
         shoot = true;
     }
-    if (g_skKeyEvent[K_SPACE].keyDown)
+    if (g_skKeyEvent[K_SPACE].keyReleased)
     {
         sSound = true;
     }
@@ -740,7 +744,7 @@ bool renderGame()
 {
     renderMap();        // renders the map to the buffer first
     consoleBG();
-    renderUI();
+    renderDifficulty();
     renderCharacter();  // renders the character into the buffer
     renderBullet();     //render spaceship bullet
     RbulletEnemy();
@@ -758,6 +762,7 @@ bool renderGame()
         renderBoss();
         renderBossBullet();
     }
+    renderUI();
     if (g_skKeyEvent[K_ESCAPE].keyReleased)
     {
         result = 0;
@@ -1597,6 +1602,52 @@ void renderGameInfo()
 
 }
 
+void destroyEnemy()
+{
+    for (unsigned int e = 0; e < 8; ++e)
+    {
+        Enemy[e].m_bActive = false;
+        Enemy2[e].m_bActive = false;
+        BulletEnemy[e].m_bActive = false;
+        Enemy3[e].m_bActive = false;
+        BulletEnemy2[e].m_bActive = false;
+        BulletEnemy3[e].m_bActive = false;
+        Rock[e].m_bActive = false;
+
+
+        Enemy[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+        Enemy2[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+        BulletEnemy[e].m_cLocation.X = Enemy2[e].m_cLocation.X;
+        Enemy3[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+        BulletEnemy[e].m_cLocation.X = Enemy3[e].m_cLocation.X;
+        BulletEnemy[e].m_cLocation.X = Enemy3[e].m_cLocation.X;
+        Rock[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+
+        BulletEnemy[e].m_cLocation.Y = Enemy2[e].m_cLocation.Y - 1;
+        Enemy[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
+        Enemy2[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
+        Enemy3[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
+        Rock[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
+
+        Enemy[e].m_bActive = true;
+        Enemy2[e].m_bActive = true;
+        Enemy3[e].m_bActive = true;
+        Rock[e].m_bActive = true;
+        BulletEnemy[e].m_bActive = true;
+    }
+    Boss.m_bActive = true;
+    Boss.m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+    Boss.m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
+    Boss.m_bActive = false;
+    for (unsigned int x = 0; x < 3; ++x)
+    {
+        BossBullet[x].m_bActive = true;
+        BossBullet[x].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+        BossBullet[x].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
+        BossBullet[x].m_bActive = false;
+    }
+}
+
 void rMultishot()
 {
     for (int i = 0; i < 2; i++)
@@ -1940,6 +1991,30 @@ void cBomb()
     }
 }
 
+void renderDifficulty(void)
+{
+    COORD c;
+    c.X = 10;
+    c.Y = g_Console.getConsoleSize().Y / 4;
+    if ((g_dElapsedTime > 45.0) && (g_dElapsedTime < 55.0))
+    {
+        g_Console.writeToBuffer(c, "Difficulty increased", 0x0F);
+    }
+    if ((g_dElapsedTime > 90.0) && (g_dElapsedTime < 100.0))
+    {
+        g_Console.writeToBuffer(c, "Difficulty increased", 0x0F);
+    }
+    if ((g_dElapsedTime > 135.0) && (g_dElapsedTime < 145.0))
+    {
+        g_Console.writeToBuffer(c, "Difficulty increased", 0x0F);
+    }
+    if ((g_dElapsedTime > 180.0) && (g_dElapsedTime < 190.0))
+    {
+        c.X -= 1;
+        g_Console.writeToBuffer(c, "Max difficulty reached", 0x0F);
+    }
+}
+
 void movePowerUp()
 {
     if (g_dElapsedTime >= timeToMove2)
@@ -2160,6 +2235,12 @@ int renderMenu(void)
 {
     int choice;
     COORD c;
+
+    start_gameTime = 0;
+    PowerEaten = false;
+    ekilled = 0;
+    score = 0;
+    life = 3;
 
     gameTitle();
     c.X = g_Console.getConsoleSize().X / 2 - 3; 
@@ -2701,6 +2782,29 @@ void renderUI(void)
         c.X = 46;
         c.Y = 22;
         g_Console.writeToBuffer(c, "PowerUps");
+        c.Y += 2;
+        c.X += 1;
+        if ((Special == 1) && (PowerEaten == true))
+        {
+            c.X -= 3;
+            g_Console.writeToBuffer(c, "Multi-Shot", 0x0F);
+        }
+        else if ((Special == 2) && (PowerEaten == true))
+        {
+            g_Console.writeToBuffer(c, "Health", 0x0F);
+        }
+        else if ((Special == 3) && (PowerEaten == true))
+        {
+            g_Console.writeToBuffer(c, "Bomb", 0x0F);
+        }
+        else if ((Special == 4) && (PowerEaten == true))
+        {
+            g_Console.writeToBuffer(c, "Shield", 0x0F);
+        }
+        else
+        {
+            g_Console.writeToBuffer(c, "", 0x0F);
+        }
     }
 
     // this part outputs the UI borders
@@ -2767,6 +2871,8 @@ bool renderResult(void)
         result = 0;
         return true;
     }
+
+    destroyEnemy();
 
     COORD c;
     std::ostringstream ss;
