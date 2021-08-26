@@ -903,7 +903,7 @@ void renderCharacter()
     {
         charColor = 0x09;
     }
-    g_Console.writeToBuffer(g_sChar.m_cLocation, (char)3, charColor);
+    g_Console.writeToBuffer(g_sChar.m_cLocation, (char)29, charColor);
 
     rPModel();
 }
@@ -1006,17 +1006,19 @@ void renderInputEvents()
 
 void renderEnemy()
 {
+    WORD Color = 0x0F;
     for (int i = 0; i < difficulty; i++) 
     {
-        g_Console.writeToBuffer(Enemy[i].m_cLocation, (char)10);
+        g_Console.writeToBuffer(Enemy[i].m_cLocation, (char)10,Color);
     }
 }
 
 void renderEnemy2()
 {
+    WORD Color = 0x0C;
     for (int i = 0; i < difficulty; i++)
     {
-        g_Console.writeToBuffer(Enemy2[i].m_cLocation, (char)20);
+        g_Console.writeToBuffer(Enemy2[i].m_cLocation, (char)12,Color);
         if (difficulty >= 3)
         {
             //g_Console.writeToBuffer(Enemy2[i].m_cLocation, (char)20);
@@ -1027,9 +1029,10 @@ void renderEnemy2()
 
 void renderEnemy3()
 {
+    WORD Color = 0x0E;
     for (int i = 0; i < difficulty; i++)
     {
-        g_Console.writeToBuffer(Enemy3[i].m_cLocation, (char)18);
+        g_Console.writeToBuffer(Enemy3[i].m_cLocation, (char)18, Color);
         if (difficulty >= 4)
         {
             BulletEnemy2[i].m_bActive = true;
@@ -1155,11 +1158,12 @@ void renderBoss()
 
     if (bosshealth > 0)
     {
+        WORD Color = 0x0D;
         for (int row = 0; row < 4; row++)
         {
             for (int col = 0; col < bossSprite[row].size(); col++)
             {
-                g_Console.writeToBuffer(bossPivot, (bossSprite[row])[col]);
+                g_Console.writeToBuffer(bossPivot, (bossSprite[row])[col], Color);
                 bossPivot.X++;
 
                 if (bossPivot.X == g_sChar.m_cLocation.X && bossPivot.Y == g_sChar.m_cLocation.Y) 
@@ -1267,13 +1271,14 @@ void renderBullet()
 
 void renderBossBullet()
 {
+    WORD Color = 0x0D;
     if (bosshealth > 0)
     {
         for (int i = 0; i < 3; i++)
         {
             if (BossBullet[i].m_bActive == true)
             {
-                g_Console.writeToBuffer(BossBullet[i].m_cLocation, (char)6);
+                g_Console.writeToBuffer(BossBullet[i].m_cLocation, (char)6, Color);
                 //BossBullet[i].m_cLocation.Y += 25 * g_dElapsedTime;
             }
         }
@@ -1298,13 +1303,14 @@ void RbulletEnemy()
 
 void RbulletEnemy2()
 {
+    WORD Color = 0x0E;
     for (int i = 0; i < difficulty; i++)
     {
         if (difficulty >= 4)
         {
             if (BulletEnemy2[i].m_bActive == true)
             {
-                g_Console.writeToBuffer(BulletEnemy2[i].m_cLocation, (char)6);
+                g_Console.writeToBuffer(BulletEnemy2[i].m_cLocation, (char)6,Color);
                 //BulletEnemy2[i].m_cLocation.X += 25 * g_dDeltaTime;
             }
         }
@@ -1313,13 +1319,14 @@ void RbulletEnemy2()
 
 void RbulletEnemy3()
 {
+    WORD Color = 0x0E;
     for (int i = 0; i < difficulty; i++)
     {
         if (difficulty >= 4)
         {
             if (BulletEnemy3[i].m_bActive == true)
             {
-                g_Console.writeToBuffer(BulletEnemy3[i].m_cLocation, (char)6);
+                g_Console.writeToBuffer(BulletEnemy3[i].m_cLocation, (char)6, Color);
                 //BulletEnemy3[i].m_cLocation.X -= 25 * g_dDeltaTime;
             }
         }
@@ -1526,6 +1533,13 @@ void checkCollision()
                 BulletTest.m_bActive = false; // stops rendering
 
                 ekilled++;
+
+                if (PowerUp.m_bActive == false && PowerEaten == true && Special == 4)
+                {
+                    ekilled--;
+                }
+
+                
                 score++;
                 sCount = 0;
 
@@ -1550,6 +1564,12 @@ void checkCollision()
                 ekilled++;
                 score++;
                 sCount = 0;
+
+                if (PowerUp.m_bActive == false && PowerEaten == true && Special == 4)
+                {
+                    ekilled--;
+                }
+
                 sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
             }
             if (BulletTest.m_cLocation.X == Enemy3[i].m_cLocation.X && BulletTest.m_cLocation.Y == Enemy3[i].m_cLocation.Y)
@@ -1569,9 +1589,17 @@ void checkCollision()
                 BulletTest.m_bActive = false; // stops rendering
 
                 ekilled++;
+
+                if (PowerUp.m_bActive == false && PowerEaten == true && Special == 4)
+                {
+                    ekilled--;
+                }
+
                 score++;
                 sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
             }
+
+            checkDestroyed();
         }
 
     }       
@@ -1687,7 +1715,9 @@ void checkCollision()
     //Player Collision with Enemy
     for (int i = 0; i < difficulty; i++)
     {
-        if (g_sChar.m_cLocation.X == Enemy[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy[i].m_cLocation.Y)
+        if ((g_sChar.m_cLocation.X == Enemy[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy[i].m_cLocation.Y)||
+            (g_sChar.m_cLocation.X - 1 == Enemy[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy[i].m_cLocation.Y)||
+            (g_sChar.m_cLocation.X + 1 == Enemy[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy[i].m_cLocation.Y))
         {
             life -= 1;
             g_sChar.m_bActive = false;
@@ -1696,7 +1726,9 @@ void checkCollision()
             g_sChar.m_bActive = true;
             sndPlaySound(L"pdeath.wav", SND_FILENAME | SND_ASYNC);
         }
-        if (g_sChar.m_cLocation.X == Enemy2[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy2[i].m_cLocation.Y)
+        if ((g_sChar.m_cLocation.X == Enemy2[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy2[i].m_cLocation.Y)||
+            (g_sChar.m_cLocation.X - 1 == Enemy2[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy2[i].m_cLocation.Y)||
+            (g_sChar.m_cLocation.X + 1 == Enemy2[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy2[i].m_cLocation.Y))
         {
             if (Enemy2[i].m_bActive == true)
             {
@@ -1708,7 +1740,9 @@ void checkCollision()
                 sndPlaySound(L"pdeath.wav", SND_FILENAME | SND_ASYNC);
             }
         }
-        if (g_sChar.m_cLocation.X == Enemy3[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy3[i].m_cLocation.Y)
+        if ((g_sChar.m_cLocation.X == Enemy3[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy3[i].m_cLocation.Y)||
+            (g_sChar.m_cLocation.X - 1 == Enemy3[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy3[i].m_cLocation.Y)||
+            (g_sChar.m_cLocation.X + 1 == Enemy3[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy3[i].m_cLocation.Y))
         {
             if (Enemy3[i].m_bActive == true)
             {
@@ -1806,7 +1840,7 @@ void rMultishot()
         if (Multishot[i].m_bActive == true && PowerEaten == true && PowerUp.m_bActive == false && Special == 1)
         {
             g_Console.writeToBuffer(Multishot[i].m_cLocation, (char)6,Color);
-            Multishot[i].m_cLocation.Y += 25 * g_dDeltaTime;
+
         }
     }
 }
@@ -1820,7 +1854,7 @@ void mMultishot()
             if (Multishot[i].m_bActive == true && shoot == true)
             {
                 Multishot[i].m_cLocation.Y--;
-                if (Multishot[i].m_cLocation.Y == 0)
+                if (Multishot[i].m_cLocation.Y == 0 || Multishot[i].m_cLocation.Y >= 29)
                 {
                     Multishot[i].m_bActive = false;
                     if (i == 0)
@@ -1864,16 +1898,10 @@ void cMultishot()
             {
                 for (int e = 0; e < difficulty; e++)
                 {
-                    if ((Multishot[i].m_cLocation.X == Enemy[e].m_cLocation.X 
-                        && Multishot[i].m_cLocation.Y == Enemy[e].m_cLocation.Y) 
-                        || Multishot[i].m_cLocation.Y <= 0
-                        || (Multishot[i].m_cLocation.X == Enemy2[e].m_cLocation.X 
-                            && Multishot[i].m_cLocation.Y == Enemy2[e].m_cLocation.Y)
-                        || (Multishot[i].m_cLocation.X == Enemy3[e].m_cLocation.X 
-                        && Multishot[i].m_cLocation.Y == Enemy3[e].m_cLocation.Y)
-                        || (Multishot[i].m_cLocation.X == Rock[e].m_cLocation.X
-                            && Multishot[i].m_cLocation.Y == Rock[e].m_cLocation.Y))
-                        
+                    if ((Multishot[i].m_cLocation.X == Enemy[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy[e].m_cLocation.Y) || Multishot[i].m_cLocation.Y <= 0||
+                    (Multishot[i].m_cLocation.X == Enemy2[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy2[e].m_cLocation.Y)||
+                    (Multishot[i].m_cLocation.X == Enemy3[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy3[e].m_cLocation.Y)||
+                    (Multishot[i].m_cLocation.X == Rock[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Rock[e].m_cLocation.Y))                             
                     {
                         if (Multishot[i].m_cLocation.X == Enemy[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy[e].m_cLocation.Y)
                         {
@@ -1960,6 +1988,7 @@ void cMultishot()
                 }
 
             }
+            checkDestroyed();
         }
     }
     else
@@ -1975,7 +2004,7 @@ void cMultishot()
 
 void rShield()
 {
-
+    WORD Color = 0x0E;
     if (PowerEaten == true && PowerUp.m_bActive == false && Special == 4)
     {
         Shield[0].m_cLocation.X = g_sChar.m_cLocation.X - 1;
@@ -2004,7 +2033,7 @@ void rShield()
 
         for (int i = 0; i < 8; i++)
         {
-            g_Console.writeToBuffer(Shield[i].m_cLocation, 'X');
+            g_Console.writeToBuffer(Shield[i].m_cLocation, 'X',Color);
         }
     }
 
@@ -2373,25 +2402,25 @@ void renderSpecial()
     {
         if (Special == 1)
         {
-            WORD Color = 0x0B;
+            WORD Color = 0x0C;
             SpecialText = "Multishot";
             g_Console.writeToBuffer(PowerUp.m_cLocation, 'M',Color);
         }
         else if (Special == 2)
         {
-            WORD Color = 0x0A;
+            WORD Color = 0x02;
             SpecialText = "Health";
             g_Console.writeToBuffer(PowerUp.m_cLocation, 'H',Color);
         }
         else if (Special == 3)
         {
-            WORD Color = 0x0F;
+            WORD Color = 0x0E;
             SpecialText = "Bomb";
             g_Console.writeToBuffer(PowerUp.m_cLocation, 'B',Color);
         }
         else if (Special == 4)
         {
-            WORD Color = 0x0E;
+            WORD Color = 0x01;
             SpecialText = "Shield";
             g_Console.writeToBuffer(PowerUp.m_cLocation, 'S',Color);
         }
