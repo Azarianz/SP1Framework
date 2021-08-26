@@ -8,6 +8,8 @@
 #include <sstream>
 #include <fstream>
 #include <time.h>
+#include <algorithm>
+#include "scores.h"
 
 using namespace std;
 
@@ -28,9 +30,11 @@ SGameChar   BulletEnemy[8];     //Enemy2   Bullet
 SGameChar   BulletEnemy2[8];    //Enemy3 L Bullet
 SGameChar   BulletEnemy3[8];    //Enemy3 R Bullet
 SGameChar   PowerUp;
-SGameChar   Shield[8];
+SGameChar   Shield[12];
 SGameChar   Boss;
 SGameChar   BossBullet[3];
+SGameChar   Destroyed[3];
+SGameChar   p_Model[2];
 
 double timeToMove = 5;
 double timeToMove2 = 5;
@@ -41,16 +45,17 @@ double timeToMove6 = 5;
 double BulletToMove = 5;
 double BulletToMove2 = 5;
 double BulletToMove3 = 5;
+double DodgeCounter = 1;
 int  ekilled = 0;
 int  score = 0;
 int  number = rand() % 37 - 2;
 bool PowerEaten = false;
 bool shoot = false;
-
+bool pDodge = false;
+bool destroyed[4] = { false, false, false, false };
 bool play = PlaySound(TEXT("audioWater.wav"), NULL, SND_LOOP | SND_ASYNC);
 bool sSound = false;
 int  sCount = 0;
-int  kSound = 0;
 
 int Special;
 string SpecialText;
@@ -72,10 +77,19 @@ double bossBulletTime = 60;
 //Bullet Spawn Points
 COORD bulletPoints[3];
 
-EGAMESTATES g_eGameState = S_SPLASHSCREEN; // initial state
+// Variables used for UI/UX
+std::string name = ""; // takes in user input name
+scores score1[6]; // no of scores that can be kept
+int score2[5]; // used to write the score rankings into file
+std::string name2[5]; // used to write the name rankings into file
+int eventCount = 0; // mitigates the problem of keypresses being pressed twice
+int result = 0; // used to determine whether player win or lose
 
+EGAMESTATES g_eGameState = S_SPLASHSCREEN; // initial state
+    
 // Console object
-Console g_Console(40, 30, "Space Wars");
+Console g_Console(60, 30, "Space Wars");
+int xGameSpace = 30;    //X-axis Gamespace
 
 #pragma region Startup
 
@@ -88,6 +102,12 @@ Console g_Console(40, 30, "Space Wars");
 //--------------------------------------------------------------
 void init( void )
 {
+    destroyed[0] = false;
+    destroyed[1] = false;
+    destroyed[2] = false;
+    destroyed[3] = false;
+
+    
     sSound = false;
     start_gameTime = 0;
     score = 0;
@@ -119,7 +139,7 @@ void init( void )
 
     #pragma region BossInit
     //Boss
-    Boss.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+    Boss.m_cLocation.X = xGameSpace / 2;
     Boss.m_cLocation.Y = g_Console.getConsoleSize().Y - 40;
     Boss.m_bActive = true;
 
@@ -146,12 +166,12 @@ void init( void )
     for (int i = 0; i < (sizeof(Enemy) / sizeof(Enemy[0])); i++)
     {
         int number = rand() % (35 - 5) - 5; //from 4 - 34
-        Enemy[i].m_cLocation.X = g_Console.getConsoleSize().X - number;
+        Enemy[i].m_cLocation.X = xGameSpace - number;
         Enemy[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 29;
 
         if (Enemy[i].m_cLocation.X == Enemy2[i].m_cLocation.X)
         {
-            Enemy[i].m_cLocation.X = g_Console.getConsoleSize().X - number;
+            Enemy[i].m_cLocation.X = xGameSpace - number;
         }
 
         if (Enemy[i].m_cLocation.X)
@@ -168,12 +188,12 @@ void init( void )
     for (int i = 0; i < (sizeof(Enemy2) / sizeof(Enemy2[0])); i++)
     {
         int number = rand() % (35 - 5) - 5;
-        Enemy2[i].m_cLocation.X = g_Console.getConsoleSize().X - number;
+        Enemy2[i].m_cLocation.X = xGameSpace - number;
         Enemy2[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
 
         if (Enemy2[i].m_cLocation.X == Enemy[i].m_cLocation.X)
         {
-            Enemy[i].m_cLocation.X = g_Console.getConsoleSize().X - number;
+            Enemy[i].m_cLocation.X = xGameSpace - number;
         }
 
         //if (i < difficulty)
@@ -195,7 +215,7 @@ void init( void )
     {
         int number = rand() % (35 - 5) - 5;
         int numberY = rand() % (40 - 30) - 30;
-        Enemy3[i].m_cLocation.X = g_Console.getConsoleSize().X - number;
+        Enemy3[i].m_cLocation.X = xGameSpace - number;
         Enemy3[i].m_cLocation.Y = g_Console.getConsoleSize().Y - numberY;
 
         //if (i < difficulty)
@@ -221,9 +241,9 @@ void init( void )
     for (int i = 0; i < (sizeof(Rock) / sizeof(Rock[0])); i++)
     {
         Rockhealth[i] = 3;
-        int number = rand() % 36 - 2;
-        Rock[i].m_cLocation.X = g_Console.getConsoleSize().X - number;
-        Rock[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 29;
+        //int number = rand() % 36 - 2;
+        Rock[i].m_cLocation.X = rand() % (xGameSpace - 10) - 10;
+        Rock[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 40;
 
         
         if (i < difficulty)
@@ -239,7 +259,7 @@ void init( void )
     }
 #pragma endregion
     #pragma region PlayerStuffInit
-    g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+    g_sChar.m_cLocation.X = xGameSpace / 2;
     g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
     g_sChar.m_bActive = true;
 
@@ -272,6 +292,31 @@ void shutdown( void )
     colour(FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED);
 
     g_Console.clearBuffer();
+}
+
+void resetGame(void)
+{
+    sSound = false;
+    start_gameTime = 0;
+    score = 0;
+    life = 3;
+    difficulty = 2;
+    timeToMove = 5;
+    timeToMove2 = 5;
+    timeToMove3 = 5;
+    timeToMove4 = 5;
+    timeToMove5 = 5;
+    timeToMove6 = 5;
+    BulletToMove = 5;
+    BulletToMove2 = 5;
+    BulletToMove3 = 5;
+    play;   //For Sound
+
+    bosshealth = 30;
+    bossCanMove = false;
+    bossTime = start_gameTime + 60;
+    bossTimeMove = 60;
+    bossBulletTime = 60;
 }
 
 #pragma endregion
@@ -320,7 +365,6 @@ void keyboardHandler(const KEY_EVENT_RECORD& keyboardEvent)
         break;
     case S_GAME: gameplayKBHandler(keyboardEvent); // handle gameplay keyboard event 
         break;
-    case S_GameOver: gameplayKBHandler(keyboardEvent);
     }
 }
 
@@ -368,10 +412,39 @@ void gameplayKBHandler(const KEY_EVENT_RECORD& keyboardEvent)
     {
     case VK_UP: key = K_UP; break;
     case VK_DOWN: key = K_DOWN; break;
-    case VK_LEFT: key = K_LEFT; break; 
-    case VK_RIGHT: key = K_RIGHT; break; 
+    case VK_LEFT: key = K_LEFT; break;
+    case VK_RIGHT: key = K_RIGHT; break;
     case VK_SPACE: key = K_SPACE; break;
-    case VK_ESCAPE: key = K_ESCAPE; break; 
+    case VK_ESCAPE: key = K_ESCAPE; break;
+    case VK_RETURN: key = K_ENTER; break;
+    case VK_BACK: key = K_BACK; break;
+    case 'A': key = K_A; break;
+    case 'B': key = K_B; break;
+    case 'C': key = K_C; break;
+    case 'D': key = K_D; break;
+    case 'E': key = K_E; break;
+    case 'F': key = K_F; break;
+    case 'G': key = K_G; break;
+    case 'H': key = K_H; break;
+    case 'I': key = K_I; break;
+    case 'J': key = K_J; break;
+    case 'K': key = K_K; break;
+    case 'L': key = K_L; break;
+    case 'M': key = K_M; break;
+    case 'N': key = K_N; break;
+    case 'O': key = K_O; break;
+    case 'P': key = K_P; break;
+    case 'Q': key = K_Q; break;
+    case 'R': key = K_R; break;
+    case 'S': key = K_S; break;
+    case 'T': key = K_T; break;
+    case 'U': key = K_U; break;
+    case 'V': key = K_V; break;
+    case 'W': key = K_W; break;
+    case 'X': key = K_X; break;
+    case 'Y': key = K_Y; break;
+    case 'Z': key = K_Z; break;
+    case VK_SHIFT: key = K_LSHIFT; break;
     }
     // a key pressed event would be one with bKeyDown == true
     // a key released event would be one with bKeyDown == false
@@ -381,7 +454,7 @@ void gameplayKBHandler(const KEY_EVENT_RECORD& keyboardEvent)
     {
         g_skKeyEvent[key].keyDown = keyboardEvent.bKeyDown;
         g_skKeyEvent[key].keyReleased = !keyboardEvent.bKeyDown;
-    }    
+    }
 }
 
 //--------------------------------------------------------------
@@ -445,16 +518,21 @@ void splashScreenWait()    // waits for time to pass in splash screen
 void updateGame()       // gameplay logic
 {
     if (start_gameTime != 0) 
-    {
-        if (g_dElapsedTime >= start_gameTime + 6.0 && g_dElapsedTime < start_gameTime + 20.0)
+    {   
+        //Spawn a new enemy everytime boss dies
+        if (g_dElapsedTime >= start_gameTime + 45 && g_dElapsedTime < start_gameTime + 90)
         {
             difficulty = 3;
         }
-        else if (g_dElapsedTime >= start_gameTime + 20 && g_dElapsedTime < start_gameTime + 45)
+        else if (g_dElapsedTime >= start_gameTime + 90 && g_dElapsedTime < start_gameTime + 135)
         {
-            difficulty = 5;
+            difficulty = 4;
         }
-        else if (g_dElapsedTime >= start_gameTime + 45)
+        else if (g_dElapsedTime >= start_gameTime + 135 && g_dElapsedTime < start_gameTime + 180)
+        {
+            difficulty = 6;
+        }
+        else if (g_dElapsedTime >= start_gameTime + 180)
         {
             difficulty = 8;
         }
@@ -476,7 +554,7 @@ void updateGame()       // gameplay logic
     bulletPoints[2].X = Boss.m_cLocation.X + 13;
     bulletPoints[2].Y = Boss.m_cLocation.Y + 4;
 
-    processUserInput(); // checks if you should change states or do something else with the game, e.g. pause, exit
+    //processUserInput(); // checks if you should change states or do something else with the game, e.g. pause, exit
     moveCharacter();    // moves the character, collision detection, physics, etc
     checkCollision();
     moveEnemy();
@@ -489,23 +567,20 @@ void updateGame()       // gameplay logic
     EnemyBMove2();
     EnemyBMove3();
     checkCollision();
-    checkKilled();  
+    checkKilled();
+    checkDestroyed();
 
+    Dodge();
     movePowerUp();
     mMultishot();
     cMultishot();
     cShield();
     cHealth();
     cBomb();
-    renderGameOver();
+    moveBoss();
+    bossBulletMove();
 
-
-    if (bossCanMove == true)
-    {
-        moveBoss();
-        bossBulletMove();
-    }
-    else if (bosshealth <= 0) 
+    if (bosshealth <= 0) 
     {
         //Reset Boss Bullets
         for (int i = 0; i < sizeof(BossBullet) / sizeof(BossBullet[0]); i++)
@@ -515,7 +590,6 @@ void updateGame()       // gameplay logic
             BossBullet[i].m_bActive = true; // stops rendering
         }
     }
-
                         // sound can be played here too.
 }
 
@@ -526,7 +600,7 @@ void moveCharacter()
     if (g_skKeyEvent[K_UP].keyDown && g_sChar.m_cLocation.Y > 1)
     {
         //Beep(1440, 30);
-        g_sChar.m_cLocation.Y--;       
+        g_sChar.m_cLocation.Y--;
     }
     if (g_skKeyEvent[K_LEFT].keyDown && g_sChar.m_cLocation.X > 1)
     {
@@ -541,7 +615,11 @@ void moveCharacter()
     if (g_skKeyEvent[K_RIGHT].keyDown && g_sChar.m_cLocation.X < g_Console.getConsoleSize().X - 2)
     {
         //Beep(1440, 30);
-        g_sChar.m_cLocation.X++;        
+        
+        if (g_sChar.m_cLocation.X == 38)
+            g_sChar.m_cLocation.X = g_sChar.m_cLocation.X;
+        else
+            g_sChar.m_cLocation.X++;
     }
     if (g_skKeyEvent[K_SPACE].keyDown)
     {
@@ -550,9 +628,13 @@ void moveCharacter()
         Multishot[1].m_bActive = true;
         shoot = true;
     }
-    if (g_skKeyEvent[K_SPACE].keyDown)
+    if (g_skKeyEvent[K_SPACE].keyReleased)
     {
         sSound = true;
+    }
+    if (g_skKeyEvent[K_LSHIFT].keyReleased)
+    {
+        pDodge = true;
     }
 
    
@@ -576,7 +658,7 @@ void moveEnemy2()
     {
         for (int i = 0; i < difficulty; i++)
         {
-            if (difficulty >= 5)
+            if (difficulty >= 3)
             {
                 Enemy2[i].m_cLocation.Y++;
             }
@@ -592,7 +674,7 @@ void moveEnemy3()
     {
         for (int i = 0; i < difficulty; i++)
         {
-            if (difficulty >= 5) 
+            if (difficulty >= 4) 
             {
                 Enemy3[i].m_cLocation.Y++;
             }
@@ -616,7 +698,6 @@ void moveBoss()
 
     if (g_dElapsedTime >= bossTimeMove)
     {
-        bossTimeMove = g_dElapsedTime + 0.2;
         //Move Boss(Probably Relocate or make this function for all enemies)
         if (Boss.m_cLocation.Y > 5)
         {
@@ -631,8 +712,12 @@ void moveBoss()
         }
         else
         {
-            Boss.m_cLocation.Y++;
+            if (bossCanMove == true)
+            {
+                Boss.m_cLocation.Y++;
+            }
         }
+        bossTimeMove = g_dElapsedTime + 0.2;
     }
 }
 
@@ -657,18 +742,17 @@ void processUserInput()
 void render()
 {
     clearScreen();      // clears the current screen and draw from scratch 
+    consoleBG();
     switch (g_eGameState)
     {
     case S_SPLASHSCREEN: renderSplashScreen();
         break;
     case S_GAME: renderGame();
         break;
-    case S_GameOver: gameoverScene();
-        break;
     }
-    renderFramerate();      // renders debug information, frame rate, elapsed time, etc
+    //renderFramerate();      // renders debug information, frame rate, elapsed time, etc
     //renderInputEvents();    // renders status of input events
-    renderGameInfo();
+    //renderGameInfo();
     renderToScreen();       // dump the contents of the buffer to the screen, one frame worth of game
 }
 
@@ -688,19 +772,33 @@ void renderSplashScreen()  // renders the splash screen
 {
     COORD c = g_Console.getConsoleSize();
     c.Y /= 3;
-    c.X = c.X / 2 - 9;
-    g_Console.writeToBuffer(c, "A game in 3 seconds", 0x03);
-    c.Y += 1;
-    c.X = g_Console.getConsoleSize().X / 2 - 20;
-    g_Console.writeToBuffer(c, "Press <Space> to change character colour", 0x09);
-    c.Y += 1;
+    c.X = c.X / 2 - 16;
+    g_Console.writeToBuffer(c, "The game will start in 3 seconds", 0x0F);
+    c.Y += 2;
+    c.X = g_Console.getConsoleSize().X / 2 - 12;
+    g_Console.writeToBuffer(c, "Use the Arrow keys to move", 0x0F);
+    c.Y += 2;
     c.X = g_Console.getConsoleSize().X / 2 - 9;
-    g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x09);
+    g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x0F);
+
+    c.X = g_Console.getConsoleSize().X / 2 - 8;
+    c.Y += 3;
+    g_Console.writeToBuffer(c, "Power Ups", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "M : Multishot", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "H : Health Regen", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "B : Bomb", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "S : Shield", 0x0F);
 }
 
-void renderGame()
+bool renderGame()
 {
     renderMap();        // renders the map to the buffer first
+    consoleBG();
+    renderDifficulty();
     renderCharacter();  // renders the character into the buffer
     renderBullet();     //render spaceship bullet
     RbulletEnemy();
@@ -711,13 +809,23 @@ void renderGame()
     renderEnemy3();
     renderRock();
     rMultishot();
+    checkDestroyed();
     rShield();
     renderSpecial();
+    renderBoss();
+    renderBossBullet();
 
-    if (bossCanMove == true)
+    renderUI();
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
     {
-        renderBoss();
-        renderBossBullet();
+        result = 0;
+        resetName();
+        return false;
+    }
+    if (life <= 0)
+    {
+        result = 1;
+        return true;
     }
 }
 
@@ -791,13 +899,16 @@ void renderMap()
 
 void renderCharacter()
 {
+    
     // Draw the location of the character
-    WORD charColor = 0x0C;
+    WORD charColor = 0x0B;
     if (g_sChar.m_bActive)
     {
-        charColor = 0x0A;
+        charColor = 0x0B;
     }
-    g_Console.writeToBuffer(g_sChar.m_cLocation, (char)3, charColor);
+    g_Console.writeToBuffer(g_sChar.m_cLocation, (char)29, charColor);
+
+    rPModel();
 }
 
 void renderFramerate()
@@ -898,18 +1009,20 @@ void renderInputEvents()
 
 void renderEnemy()
 {
+    WORD Color = 0x0F;
     for (int i = 0; i < difficulty; i++) 
     {
-        g_Console.writeToBuffer(Enemy[i].m_cLocation, (char)10);
+        g_Console.writeToBuffer(Enemy[i].m_cLocation, (char)10,Color);
     }
 }
 
 void renderEnemy2()
 {
+    WORD Color = 0x0C;
     for (int i = 0; i < difficulty; i++)
     {
-        g_Console.writeToBuffer(Enemy2[i].m_cLocation, (char)20);
-        if (difficulty >= 5)
+        g_Console.writeToBuffer(Enemy2[i].m_cLocation, (char)12,Color);
+        if (difficulty >= 3)
         {
             //g_Console.writeToBuffer(Enemy2[i].m_cLocation, (char)20);
             BulletEnemy[i].m_bActive = true;
@@ -919,10 +1032,11 @@ void renderEnemy2()
 
 void renderEnemy3()
 {
+    WORD Color = 0x0E;
     for (int i = 0; i < difficulty; i++)
     {
-        g_Console.writeToBuffer(Enemy3[i].m_cLocation, (char)18);
-        if (difficulty >= 5)
+        g_Console.writeToBuffer(Enemy3[i].m_cLocation, (char)18, Color);
+        if (difficulty >= 4)
         {
             BulletEnemy2[i].m_bActive = true;
             BulletEnemy3[i].m_bActive = true;
@@ -936,9 +1050,9 @@ void renderRock()
     for (int i = 0; i < difficulty; i++)
     {
         string RockSprite[3] =
-        { " (*****) ",
-         "(**owo**)",
-         " (*****) " };
+        {"  (*)  ",
+         "(*****)",
+         "  (*)  " };
         COORD RockPivot;
         RockPivot.X = Rock[i].m_cLocation.X;
         RockPivot.Y = Rock[i].m_cLocation.Y;
@@ -956,7 +1070,7 @@ void renderRock()
                     {
                         life--;
                         g_sChar.m_bActive = false;
-                        g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+                        g_sChar.m_cLocation.X = xGameSpace / 2;
                         g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
                         g_sChar.m_bActive = true;
                     }
@@ -973,6 +1087,10 @@ void renderRock()
                             BulletTest.m_cLocation.X = g_sChar.m_cLocation.X;
                             BulletTest.m_cLocation.Y = g_sChar.m_cLocation.Y - 1; // resets the position to front of space ship
                             BulletTest.m_bActive = false; // stops rendering
+        
+                            sCount = 1;
+                            sSound = false;
+                            
                         }
                     }
 
@@ -1000,6 +1118,7 @@ void renderRock()
                                     }
 
                                     Multishot[i].m_bActive = false;
+                                    sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
                                 }
 
                             }
@@ -1016,7 +1135,7 @@ void renderRock()
         else
         {
             Rock[i].m_bActive = false;
-            Rock[i].m_cLocation.X = g_Console.getConsoleSize().X / 2;
+            Rock[i].m_cLocation.X = rand() % (xGameSpace - 10) - 10;
             Rock[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 40;
             ekilled++;
             score += 1;
@@ -1040,20 +1159,21 @@ void renderBoss()
     bossPivot.X = Boss.m_cLocation.X - 4;
     bossPivot.Y = Boss.m_cLocation.Y;
 
-    if (bosshealth > 0)
+    if (bosshealth > 0 && bossCanMove == true)
     {
+        WORD Color = 0x0D;
         for (int row = 0; row < 4; row++)
         {
             for (int col = 0; col < bossSprite[row].size(); col++)
             {
-                g_Console.writeToBuffer(bossPivot, (bossSprite[row])[col]);
+                g_Console.writeToBuffer(bossPivot, (bossSprite[row])[col], Color);
                 bossPivot.X++;
 
                 if (bossPivot.X == g_sChar.m_cLocation.X && bossPivot.Y == g_sChar.m_cLocation.Y) 
                 {
                     life--;
                     g_sChar.m_bActive = false;
-                    g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+                    g_sChar.m_cLocation.X = xGameSpace / 2;
                     g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
                     g_sChar.m_bActive = true;
                 }
@@ -1070,6 +1190,12 @@ void renderBoss()
                         BulletTest.m_cLocation.X = g_sChar.m_cLocation.X;
                         BulletTest.m_cLocation.Y = g_sChar.m_cLocation.Y - 1; // resets the position to front of space ship
                         BulletTest.m_bActive = false; // stops rendering
+                        if (sSound == true && sCount == 0)
+                        {
+                            sndPlaySound(L"shoot.wav", SND_FILENAME | SND_ASYNC);
+                            sCount = 1;
+                            sSound = false;
+                        }
                     }
                 }
 
@@ -1108,7 +1234,7 @@ void renderBoss()
             bossPivot.Y++;
         }
     }
-    else
+    else if (bosshealth <= 0)
     {
         //Reset Boss Bullets
         for (int i = 0; i < sizeof(BossBullet)/sizeof(BossBullet[0]); i++) 
@@ -1120,7 +1246,7 @@ void renderBoss()
 
         //Reset Boss
         Boss.m_bActive = false;
-        Boss.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+        Boss.m_cLocation.X = rand() % (xGameSpace - 10) - 10;
         Boss.m_cLocation.Y = g_Console.getConsoleSize().Y - 40;
         ekilled++;
         score += 10;
@@ -1132,28 +1258,30 @@ void renderBoss()
 
 void renderBullet()
 {
+    WORD Color = 0x0B;
     if (BulletTest.m_bActive == true)
     {
         if (sSound == true && sCount == 0)
         {
-            Beep(500, 50);
+            sndPlaySound(L"shoot.wav", SND_FILENAME | SND_ASYNC);
             sCount = 1;
             sSound = false;
         }
-        g_Console.writeToBuffer(BulletTest.m_cLocation, (char)6);
+        g_Console.writeToBuffer(BulletTest.m_cLocation, (char)6, Color);
         //BulletTest.m_cLocation.Y++;
     }
 }
 
 void renderBossBullet()
 {
+    WORD Color = 0x0D;
     if (bosshealth > 0)
     {
         for (int i = 0; i < 3; i++)
         {
             if (BossBullet[i].m_bActive == true)
             {
-                g_Console.writeToBuffer(BossBullet[i].m_cLocation, (char)6);
+                g_Console.writeToBuffer(BossBullet[i].m_cLocation, (char)6, Color);
                 //BossBullet[i].m_cLocation.Y += 25 * g_dElapsedTime;
             }
         }
@@ -1164,11 +1292,12 @@ void RbulletEnemy()
 {
     for (int i = 0; i < difficulty; i++)
     {
-        if (difficulty >= 5)
+        WORD Color = 0x0C;
+        if (difficulty >= 3)
         {
             if (BulletEnemy[i].m_bActive == true)
             {
-                g_Console.writeToBuffer(BulletEnemy[i].m_cLocation, (char)6);
+                g_Console.writeToBuffer(BulletEnemy[i].m_cLocation, (char)25, Color);
                 //BulletEnemy[i].m_cLocation.Y += 25 * g_dDeltaTime;
             }
         }
@@ -1177,13 +1306,14 @@ void RbulletEnemy()
 
 void RbulletEnemy2()
 {
+    WORD Color = 0x0E;
     for (int i = 0; i < difficulty; i++)
     {
-        if (difficulty >= 5)
+        if (difficulty >= 4)
         {
             if (BulletEnemy2[i].m_bActive == true)
             {
-                g_Console.writeToBuffer(BulletEnemy2[i].m_cLocation, (char)6);
+                g_Console.writeToBuffer(BulletEnemy2[i].m_cLocation, (char)6,Color);
                 //BulletEnemy2[i].m_cLocation.X += 25 * g_dDeltaTime;
             }
         }
@@ -1192,13 +1322,14 @@ void RbulletEnemy2()
 
 void RbulletEnemy3()
 {
+    WORD Color = 0x0E;
     for (int i = 0; i < difficulty; i++)
     {
-        if (difficulty >= 5)
+        if (difficulty >= 4)
         {
             if (BulletEnemy3[i].m_bActive == true)
             {
-                g_Console.writeToBuffer(BulletEnemy3[i].m_cLocation, (char)6);
+                g_Console.writeToBuffer(BulletEnemy3[i].m_cLocation, (char)6, Color);
                 //BulletEnemy3[i].m_cLocation.X -= 25 * g_dDeltaTime;
             }
         }
@@ -1209,8 +1340,7 @@ void bossBulletMove()
 {
     if (g_dElapsedTime >= bossBulletTime)
     {
-        bossBulletTime = g_dElapsedTime + 0.1;
-        if (bosshealth > 0)
+        if (bosshealth > 0 && bossCanMove  == true)
         {
             //Normal Enemy Bullet Move
             for (int i = 0; i < 3; i++)
@@ -1232,6 +1362,16 @@ void bossBulletMove()
                 }
             }
         }
+
+        else
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                BossBullet[i].m_cLocation = bulletPoints[i];
+            }
+        }
+
+        bossBulletTime = g_dElapsedTime + 0.1;
     }
 
 }
@@ -1242,7 +1382,7 @@ void EnemyBMove()
     {
         for (int i = 0; i < difficulty; i++)
         {
-            if (difficulty >= 5)
+            if (difficulty >= 3)
             {
                 if (BulletEnemy[i].m_bActive == true)
                 {
@@ -1274,7 +1414,7 @@ void EnemyBMove2()
     {
         for (int i = 0; i < difficulty; i++)
         {
-            if (difficulty >= 5)
+            if (difficulty >= 4)
             {
                 if (BulletEnemy2[i].m_bActive == true)
                 {
@@ -1307,7 +1447,7 @@ void EnemyBMove3()
     {
         for (int i = 0; i < difficulty; i++)
         {
-            if (difficulty >= 5)
+            if (difficulty >= 4)
             {
                 if (BulletEnemy3[i].m_bActive == true)
                 {
@@ -1373,6 +1513,7 @@ void RockMove()
 }
 void checkCollision()
 {
+    WORD Color = 0x1AF;
     //for player bullets
     if (BulletTest.m_bActive == true)
     {
@@ -1380,8 +1521,15 @@ void checkCollision()
         {
             if (BulletTest.m_cLocation.X == Enemy[i].m_cLocation.X && BulletTest.m_cLocation.Y == Enemy[i].m_cLocation.Y)
             {
+                destroyed[0] = true;
+
+                Destroyed[0].m_cLocation.X = Enemy[i].m_cLocation.X;
+                Destroyed[0].m_cLocation.Y = Enemy[i].m_cLocation.Y;
+
+
+
                 Enemy[i].m_bActive = false;
-                Enemy[i].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35 - 5) - 5; //from 4 - 34
+                Enemy[i].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5; //from 4 - 34
                 Enemy[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 29;
                 Enemy[i].m_bActive = true;
 
@@ -1390,15 +1538,27 @@ void checkCollision()
                 BulletTest.m_bActive = false; // stops rendering
 
                 ekilled++;
+
+                if (PowerUp.m_bActive == false && PowerEaten == true && Special == 4)
+                {
+                    ekilled--;
+                }
+
+                
                 score++;
                 sCount = 0;
 
-                Beep(300, 50);
+                sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
             }
             if (BulletTest.m_cLocation.X == Enemy2[i].m_cLocation.X && BulletTest.m_cLocation.Y == Enemy2[i].m_cLocation.Y)
             {
+                destroyed[1] = true;
+
+                Destroyed[1].m_cLocation.X = Enemy2[i].m_cLocation.X;
+                Destroyed[1].m_cLocation.Y = Enemy2[i].m_cLocation.Y;
+
                 Enemy2[i].m_bActive = false;
-                Enemy2[i].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35 - 5) - 5;
+                Enemy2[i].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
                 Enemy2[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 32;
                 Enemy2[i].m_bActive = true;
 
@@ -1409,12 +1569,23 @@ void checkCollision()
                 ekilled++;
                 score++;
                 sCount = 0;
-                Beep(300, 50);
+
+                if (PowerUp.m_bActive == false && PowerEaten == true && Special == 4)
+                {
+                    ekilled--;
+                }
+
+                sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
             }
             if (BulletTest.m_cLocation.X == Enemy3[i].m_cLocation.X && BulletTest.m_cLocation.Y == Enemy3[i].m_cLocation.Y)
             {
+                destroyed[2] = true;
+
+                Destroyed[2].m_cLocation.X = Enemy3[i].m_cLocation.X;
+                Destroyed[2].m_cLocation.Y = Enemy3[i].m_cLocation.Y;
+
                 Enemy3[i].m_bActive = false;
-                Enemy3[i].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35 - 5) - 5;
+                Enemy3[i].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
                 Enemy3[i].m_cLocation.Y = g_Console.getConsoleSize().Y - rand() % (30 - 25) - 25;
                 Enemy3[i].m_bActive = true;
 
@@ -1423,8 +1594,17 @@ void checkCollision()
                 BulletTest.m_bActive = false; // stops rendering
 
                 ekilled++;
+
+                if (PowerUp.m_bActive == false && PowerEaten == true && Special == 4)
+                {
+                    ekilled--;
+                }
+
                 score++;
+                sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
             }
+
+            checkDestroyed();
         }
 
     }       
@@ -1432,42 +1612,61 @@ void checkCollision()
     //for enemy bullet hit player collision
     for (int i = 0; i < difficulty; i++)
     {
-        if (difficulty >= 5)
+        if (difficulty >= 3)
         {
             if (BulletEnemy[i].m_bActive == true)
             {
-                if (BulletEnemy[i].m_cLocation.X == g_sChar.m_cLocation.X
-                    && BulletEnemy[i].m_cLocation.Y == g_sChar.m_cLocation.Y)
+                if ((BulletEnemy[i].m_cLocation.X == g_sChar.m_cLocation.X && BulletEnemy[i].m_cLocation.Y == g_sChar.m_cLocation.Y) ||
+                    (BulletEnemy[i].m_cLocation.X == g_sChar.m_cLocation.X - 1 && BulletEnemy[i].m_cLocation.Y == g_sChar.m_cLocation.Y) ||
+                    (BulletEnemy[i].m_cLocation.X == g_sChar.m_cLocation.X + 1 && BulletEnemy[i].m_cLocation.Y == g_sChar.m_cLocation.Y))
                 {
                     life -= 1;
                     g_sChar.m_bActive = false;
-                    g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+                    g_sChar.m_cLocation.X = xGameSpace / 2;
                     g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
                     g_sChar.m_bActive = true;
+
+                    BulletEnemy[i].m_bActive = false;
+                    BulletEnemy[i].m_cLocation.X = Enemy2[i].m_cLocation.X;
+                    BulletEnemy[i].m_cLocation.Y = Enemy2[i].m_cLocation.Y + 1;
+                    BulletEnemy[i].m_bActive = true;
                 }
             }
             if (BulletEnemy2[i].m_bActive == true)
             {
-                if (BulletEnemy2[i].m_cLocation.X == g_sChar.m_cLocation.X
-                    && BulletEnemy2[i].m_cLocation.Y == g_sChar.m_cLocation.Y)
+                if ((BulletEnemy2[i].m_cLocation.X == g_sChar.m_cLocation.X && BulletEnemy2[i].m_cLocation.Y == g_sChar.m_cLocation.Y) ||
+                    (BulletEnemy2[i].m_cLocation.X == g_sChar.m_cLocation.X - 1 && BulletEnemy2[i].m_cLocation.Y == g_sChar.m_cLocation.Y) ||
+                    (BulletEnemy2[i].m_cLocation.X == g_sChar.m_cLocation.X + 1 && BulletEnemy2[i].m_cLocation.Y == g_sChar.m_cLocation.Y))
                 {
                     life -= 1;
                     g_sChar.m_bActive = false;
-                    g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+                    g_sChar.m_cLocation.X = xGameSpace / 2;
                     g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
                     g_sChar.m_bActive = true;
+
+
+                    BulletEnemy2[i].m_bActive = false;
+                    BulletEnemy2[i].m_cLocation.X = Enemy2[i].m_cLocation.X;
+                    BulletEnemy2[i].m_cLocation.Y = Enemy2[i].m_cLocation.Y + 1;
+                    BulletEnemy2[i].m_bActive = true;
                 }
             }
             if (BulletEnemy3[i].m_bActive == true)
             {
-                if (BulletEnemy3[i].m_cLocation.X == g_sChar.m_cLocation.X
-                    && BulletEnemy3[i].m_cLocation.Y == g_sChar.m_cLocation.Y)
+                if ((BulletEnemy3[i].m_cLocation.X == g_sChar.m_cLocation.X && BulletEnemy3[i].m_cLocation.Y == g_sChar.m_cLocation.Y) ||
+                    (BulletEnemy3[i].m_cLocation.X == g_sChar.m_cLocation.X - 1 && BulletEnemy3[i].m_cLocation.Y == g_sChar.m_cLocation.Y) ||
+                    (BulletEnemy3[i].m_cLocation.X == g_sChar.m_cLocation.X + 1 && BulletEnemy3[i].m_cLocation.Y == g_sChar.m_cLocation.Y))
                 {
                     life -= 1;
                     g_sChar.m_bActive = false;
-                    g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+                    g_sChar.m_cLocation.X = xGameSpace / 2;
                     g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
                     g_sChar.m_bActive = true;
+
+                    BulletEnemy3[i].m_bActive = false;
+                    BulletEnemy3[i].m_cLocation.X = Enemy2[i].m_cLocation.X;
+                    BulletEnemy3[i].m_cLocation.Y = Enemy2[i].m_cLocation.Y + 1;
+                    BulletEnemy3[i].m_bActive = true;
                 }
             }
         }
@@ -1479,7 +1678,7 @@ void checkCollision()
         if (Enemy[i].m_cLocation.Y >= g_Console.getConsoleSize().Y - 1)
         {
             Enemy[i].m_bActive = false;
-            Enemy[i].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35 - 5) - 5; //from 4 - 34
+            Enemy[i].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5; //from 4 - 34
             Enemy[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 29;
             Enemy[i].m_bActive = true;
         }
@@ -1487,7 +1686,7 @@ void checkCollision()
         if (Enemy2[i].m_cLocation.Y >= g_Console.getConsoleSize().Y - 1)
         {
             Enemy2[i].m_bActive = false;
-            Enemy2[i].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35 - 5) - 5;
+            Enemy2[i].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
             Enemy2[i].m_cLocation.Y = g_Console.getConsoleSize().Y - 32;
             Enemy2[i].m_bActive = true;
         }
@@ -1495,7 +1694,7 @@ void checkCollision()
         if (Enemy3[i].m_cLocation.Y >= g_Console.getConsoleSize().Y - 1)
         {
             //Enemy3[i].m_bActive = false;
-            Enemy3[i].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35 - 5) - 5; //from 4 - 34
+            Enemy3[i].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5; //from 4 - 34
             Enemy3[i].m_cLocation.Y = g_Console.getConsoleSize().Y - rand() % (35 - 30) - 30;
             //Enemy3[i].m_bActive = true;
         }
@@ -1509,7 +1708,7 @@ void checkCollision()
         {
             life--;
             g_sChar.m_bActive = false;
-            g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+            g_sChar.m_cLocation.X = xGameSpace / 2;
             g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
             g_sChar.m_bActive = true;
             BossBullet[i].m_bActive = false;
@@ -1518,6 +1717,51 @@ void checkCollision()
         }
     }  
 
+    //Player Collision with Enemy
+    for (int i = 0; i < difficulty; i++)
+    {
+        if ((g_sChar.m_cLocation.X == Enemy[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy[i].m_cLocation.Y)||
+            (g_sChar.m_cLocation.X - 1 == Enemy[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy[i].m_cLocation.Y)||
+            (g_sChar.m_cLocation.X + 1 == Enemy[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy[i].m_cLocation.Y))
+        {
+            life -= 1;
+            g_sChar.m_bActive = false;
+            g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+            g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
+            g_sChar.m_bActive = true;
+            sndPlaySound(L"pdeath.wav", SND_FILENAME | SND_ASYNC);
+        }
+        if ((g_sChar.m_cLocation.X == Enemy2[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy2[i].m_cLocation.Y)||
+            (g_sChar.m_cLocation.X - 1 == Enemy2[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy2[i].m_cLocation.Y)||
+            (g_sChar.m_cLocation.X + 1 == Enemy2[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy2[i].m_cLocation.Y))
+        {
+            if (Enemy2[i].m_bActive == true)
+            {
+                life -= 1;
+                g_sChar.m_bActive = false;
+                g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+                g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
+                g_sChar.m_bActive = true;
+                sndPlaySound(L"pdeath.wav", SND_FILENAME | SND_ASYNC);
+            }
+        }
+        if ((g_sChar.m_cLocation.X == Enemy3[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy3[i].m_cLocation.Y)||
+            (g_sChar.m_cLocation.X - 1 == Enemy3[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy3[i].m_cLocation.Y)||
+            (g_sChar.m_cLocation.X + 1 == Enemy3[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy3[i].m_cLocation.Y))
+        {
+            if (Enemy3[i].m_bActive == true)
+            {
+                life -= 1;
+                g_sChar.m_bActive = false;
+                g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+                g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
+                g_sChar.m_bActive = true;
+                sndPlaySound(L"pdeath.wav", SND_FILENAME | SND_ASYNC);
+            }
+        }
+
+        //Rock Collision is inside Rock Function
+    }
 }
 
 void renderGameInfo()
@@ -1547,81 +1791,61 @@ void renderGameInfo()
 
 }
 
-void gameoverScene()
+void destroyEnemy()
 {
-    COORD c = g_Console.getConsoleSize();
-    c.Y /= 3;
-    c.X = c.X / 2 - 9;
-    g_Console.writeToBuffer(c, "GAMEOVER", 0x03);
-    c.Y += 1;
-    c.X = g_Console.getConsoleSize().X / 2 - 20;
-    g_Console.writeToBuffer(c, "Press <Space> to Play Again", 0x09);
-    c.Y += 1;
-    c.X = g_Console.getConsoleSize().X / 2 - 9;
-    g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x09);
-
-    if (g_skKeyEvent[K_SPACE].keyReleased)
+    for (unsigned int e = 0; e < 8; ++e)
     {
-        init();
-    }
-    else if (g_skKeyEvent[K_ESCAPE].keyReleased)
-    {
-        g_bQuitGame = true;
-    }
-}
+        Enemy[e].m_bActive = false;
+        Enemy2[e].m_bActive = false;
+        BulletEnemy[e].m_bActive = false;
+        Enemy3[e].m_bActive = false;
+        BulletEnemy2[e].m_bActive = false;
+        BulletEnemy3[e].m_bActive = false;
+        Rock[e].m_bActive = false;
 
-void renderGameOver()
-{
-    for (int i = 0; i < difficulty; i++)
-    {
-        if (g_sChar.m_cLocation.X == Enemy[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy[i].m_cLocation.Y)
-        {
-            life -= 1;
-            g_sChar.m_bActive = false;
-            g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
-            g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
-            g_sChar.m_bActive = true;
-            Beep(175, 70);
-        }
-        if (g_sChar.m_cLocation.X == Enemy2[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy2[i].m_cLocation.Y)
-        {
-            if (Enemy2[i].m_bActive == true)
-            {
-                life -= 1;
-                g_sChar.m_bActive = false;
-                g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
-                g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
-                g_sChar.m_bActive = true;
-            }
-        }
-        if (g_sChar.m_cLocation.X == Enemy3[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy3[i].m_cLocation.Y)
-        {
-            if (Enemy3[i].m_bActive == true)
-            {
-                life -= 1;
-                g_sChar.m_bActive = false;
-                g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
-                g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
-                g_sChar.m_bActive = true;
-            }
-        }
-        if (life <= 0)
-        {
-            g_eGameState = S_GameOver;
-        }
-    }
-    
 
+        Enemy[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+        Enemy2[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+        BulletEnemy[e].m_cLocation.X = Enemy2[e].m_cLocation.X;
+        Enemy3[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+        BulletEnemy[e].m_cLocation.X = Enemy3[e].m_cLocation.X;
+        BulletEnemy[e].m_cLocation.X = Enemy3[e].m_cLocation.X;
+        Rock[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+
+        BulletEnemy[e].m_cLocation.Y = Enemy2[e].m_cLocation.Y - 1;
+        Enemy[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
+        Enemy2[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
+        Enemy3[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
+        Rock[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
+
+        Enemy[e].m_bActive = true;
+        Enemy2[e].m_bActive = true;
+        Enemy3[e].m_bActive = true;
+        Rock[e].m_bActive = true;
+        BulletEnemy[e].m_bActive = true;
+    }
+    Boss.m_bActive = true;
+    Boss.m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+    Boss.m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
+    Boss.m_bActive = false;
+    for (unsigned int x = 0; x < 3; ++x)
+    {
+        BossBullet[x].m_bActive = true;
+        BossBullet[x].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+        BossBullet[x].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
+        BossBullet[x].m_bActive = false;
+    }
 }
 
 void rMultishot()
 {
+    WORD Color = 0x09;
     for (int i = 0; i < 2; i++)
     {
         if (Multishot[i].m_bActive == true && PowerEaten == true && PowerUp.m_bActive == false && Special == 1)
         {
-            g_Console.writeToBuffer(Multishot[i].m_cLocation, (char)6);
-            Multishot[i].m_cLocation.Y += 25 * g_dDeltaTime;
+            g_Console.writeToBuffer(Multishot[i].m_cLocation, (char)6,Color);
+
         }
     }
 }
@@ -1635,7 +1859,7 @@ void mMultishot()
             if (Multishot[i].m_bActive == true && shoot == true)
             {
                 Multishot[i].m_cLocation.Y--;
-                if (Multishot[i].m_cLocation.Y == 0)
+                if (Multishot[i].m_cLocation.Y == 0 || Multishot[i].m_cLocation.Y >= 29)
                 {
                     Multishot[i].m_bActive = false;
                     if (i == 0)
@@ -1679,67 +1903,76 @@ void cMultishot()
             {
                 for (int e = 0; e < difficulty; e++)
                 {
-                    if ((Multishot[i].m_cLocation.X == Enemy[e].m_cLocation.X 
-                        && Multishot[i].m_cLocation.Y == Enemy[e].m_cLocation.Y) 
-                        || Multishot[i].m_cLocation.Y <= 0
-                        || (Multishot[i].m_cLocation.X == Enemy2[e].m_cLocation.X 
-                            && Multishot[i].m_cLocation.Y == Enemy2[e].m_cLocation.Y)
-                        || (Multishot[i].m_cLocation.X == Enemy3[e].m_cLocation.X 
-                        && Multishot[i].m_cLocation.Y == Enemy3[e].m_cLocation.Y)
-                        || (Multishot[i].m_cLocation.X == Rock[e].m_cLocation.X
-                            && Multishot[i].m_cLocation.Y == Rock[e].m_cLocation.Y))
-                        
+                    if ((Multishot[i].m_cLocation.X == Enemy[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy[e].m_cLocation.Y) || Multishot[i].m_cLocation.Y <= 0||
+                    (Multishot[i].m_cLocation.X == Enemy2[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy2[e].m_cLocation.Y)||
+                    (Multishot[i].m_cLocation.X == Enemy3[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy3[e].m_cLocation.Y)||
+                    (Multishot[i].m_cLocation.X == Rock[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Rock[e].m_cLocation.Y))                             
                     {
                         if (Multishot[i].m_cLocation.X == Enemy[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy[e].m_cLocation.Y)
                         {
+                            destroyed[0] = true;
+
+                            Destroyed[0].m_cLocation.X = Enemy[e].m_cLocation.X;
+                            Destroyed[0].m_cLocation.Y = Enemy[e].m_cLocation.Y;
 
                             Enemy[e].m_bActive = false;
 
-                            Enemy[e].m_cLocation.X = g_Console.getConsoleSize().X - rand() % 38 - 2;
+                            Enemy[e].m_cLocation.X = xGameSpace - rand() % 38 - 2;
                             Enemy[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 29;
                             Enemy[e].m_bActive = true;
 
                             ekilled++;
                             score++;
-                            Beep(350, 50);
+                            sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
                         }
 
                         if (Multishot[i].m_cLocation.X == Enemy2[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy2[e].m_cLocation.Y)
                         {
+                            destroyed[1] = true;
+
+                            Destroyed[1].m_cLocation.X = Enemy2[e].m_cLocation.X;
+                            Destroyed[1].m_cLocation.Y = Enemy2[e].m_cLocation.Y;
+
                             Enemy2[e].m_bActive = false;
 
-                            Enemy2[e].m_cLocation.X = g_Console.getConsoleSize().X - rand() % 38 - 2;
+                            Enemy2[e].m_cLocation.X = xGameSpace - rand() % 38 - 2;
                             Enemy2[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 29;
                             Enemy2[e].m_bActive = true;
 
                             ekilled++;
                             score++;
-                            Beep(350, 50);
+                            sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
+
                         }
 
                         if (Multishot[i].m_cLocation.X == Enemy3[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Enemy3[e].m_cLocation.Y)
                         {
+                            destroyed[2] = true;
+
+                            Destroyed[2].m_cLocation.X = Enemy3[e].m_cLocation.X;
+                            Destroyed[2].m_cLocation.Y = Enemy3[e].m_cLocation.Y;
+
                             Enemy3[e].m_bActive = false;
 
-                            Enemy3[e].m_cLocation.X = g_Console.getConsoleSize().X - rand() % 38 - 2;
+                            Enemy3[e].m_cLocation.X = xGameSpace - rand() % 38 - 2;
                             Enemy3[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 29;
                             Enemy3[e].m_bActive = true;
 
                             ekilled++;
                             score++;
-                            Beep(350, 50);
+                            sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
                         }
                         if (Multishot[i].m_cLocation.X == Rock[e].m_cLocation.X && Multishot[i].m_cLocation.Y == Rock[e].m_cLocation.Y)
                         {
                             Rock[e].m_bActive = false;
 
-                            Rock[e].m_cLocation.X = g_Console.getConsoleSize().X - rand() % 38 - 2;
+                            Rock[e].m_cLocation.X = xGameSpace - rand() % 38 - 2;
                             Rock[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 29;
                             Rock[e].m_bActive = true;
 
                             ekilled++;
                             score++;
-                            Beep(350, 50);
+                            sndPlaySound(L"destroy.wav", SND_FILENAME | SND_ASYNC);
                         }
 
                         if (i == 0)
@@ -1760,6 +1993,7 @@ void cMultishot()
                 }
 
             }
+            checkDestroyed();
         }
     }
     else
@@ -1775,7 +2009,7 @@ void cMultishot()
 
 void rShield()
 {
-
+    WORD Color = 0x0E;
     if (PowerEaten == true && PowerUp.m_bActive == false && Special == 4)
     {
         Shield[0].m_cLocation.X = g_sChar.m_cLocation.X - 1;
@@ -1788,23 +2022,34 @@ void rShield()
         Shield[2].m_cLocation.Y = g_sChar.m_cLocation.Y - 1;
 
         Shield[3].m_cLocation.X = g_sChar.m_cLocation.X - 1;
-        Shield[3].m_cLocation.Y = g_sChar.m_cLocation.Y;
+        Shield[3].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
 
-        Shield[4].m_cLocation.X = g_sChar.m_cLocation.X + 1;
-        Shield[4].m_cLocation.Y = g_sChar.m_cLocation.Y;
+        Shield[4].m_cLocation.X = g_sChar.m_cLocation.X;
+        Shield[4].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
 
-        Shield[5].m_cLocation.X = g_sChar.m_cLocation.X - 1;
+        Shield[5].m_cLocation.X = g_sChar.m_cLocation.X + 1;
         Shield[5].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
 
-        Shield[6].m_cLocation.X = g_sChar.m_cLocation.X;
-        Shield[6].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
+        Shield[6].m_cLocation.X = g_sChar.m_cLocation.X - 2;
+        Shield[6].m_cLocation.Y = g_sChar.m_cLocation.Y - 1;
 
-        Shield[7].m_cLocation.X = g_sChar.m_cLocation.X + 1;
-        Shield[7].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
+        Shield[7].m_cLocation.X = g_sChar.m_cLocation.X - 2;
+        Shield[7].m_cLocation.Y = g_sChar.m_cLocation.Y;
 
-        for (int i = 0; i < 8; i++)
+        Shield[8].m_cLocation.X = g_sChar.m_cLocation.X - 2;
+        Shield[8].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
+
+        Shield[9].m_cLocation.X = g_sChar.m_cLocation.X + 2;
+        Shield[9].m_cLocation.Y = g_sChar.m_cLocation.Y - 1;
+
+        Shield[10].m_cLocation.X = g_sChar.m_cLocation.X + 2;
+        Shield[10].m_cLocation.Y = g_sChar.m_cLocation.Y;
+
+        Shield[11].m_cLocation.X = g_sChar.m_cLocation.X + 2;
+        Shield[11].m_cLocation.Y = g_sChar.m_cLocation.Y + 1;
+        for (int i = 0; i < 12; i++)
         {
-            g_Console.writeToBuffer(Shield[i].m_cLocation, 'X');
+            g_Console.writeToBuffer(Shield[i].m_cLocation, 'X', Color);
         }
     }
 
@@ -1814,47 +2059,62 @@ void cShield()
 {
     if (PowerEaten == true && PowerUp.m_bActive == false && Special == 4)
     {
-        for (int s = 0; s < 8; s++)
+        for (int s = 0; s < 12; s++)
         {
             for (int e = 0; e < difficulty; e++)
             {
                 if (Shield[s].m_cLocation.X == Enemy[e].m_cLocation.X && Shield[s].m_cLocation.Y == Enemy[e].m_cLocation.Y)
                 {
+                    destroyed[0] = true;
+
+                    Destroyed[0].m_cLocation.X = Enemy[e].m_cLocation.X;
+                    Destroyed[0].m_cLocation.Y = Enemy[e].m_cLocation.Y;
+
                     Enemy[e].m_bActive = false;
 
-                    Enemy[e].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35 - 5) - 5;
+                    Enemy[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
                     Enemy[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
                     Enemy[e].m_bActive = true;
 
                     ekilled++;
                     score++;
-                    Beep(440, 70);
+                    sndPlaySound(L"deflect.wav", SND_FILENAME | SND_ASYNC);
                 }
 
                 if (Shield[s].m_cLocation.X == Enemy2[e].m_cLocation.X && Shield[s].m_cLocation.Y == Enemy2[e].m_cLocation.Y)
                 {
+                    destroyed[1] = true;
+
+                    Destroyed[1].m_cLocation.X = Enemy2[e].m_cLocation.X;
+                    Destroyed[1].m_cLocation.Y = Enemy2[e].m_cLocation.Y;
+
                     Enemy2[e].m_bActive = false;
 
-                    Enemy2[e].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35 - 5) - 5;
+                    Enemy2[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
                     Enemy2[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 30;
                     Enemy2[e].m_bActive = true;
 
                     ekilled++;
                     score++;
-                    Beep(440, 70);
+                    sndPlaySound(L"deflect.wav", SND_FILENAME | SND_ASYNC);
                 }
 
                 if (Shield[s].m_cLocation.X == Enemy3[e].m_cLocation.X && Shield[s].m_cLocation.Y == Enemy3[e].m_cLocation.Y)
                 {
+                    destroyed[2] = true;
+
+                    Destroyed[2].m_cLocation.X = Enemy3[e].m_cLocation.X;
+                    Destroyed[2].m_cLocation.Y = Enemy3[e].m_cLocation.Y;
+
                     Enemy3[e].m_bActive = false;
 
-                    Enemy3[e].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35-5) - 5;
+                    Enemy3[e].m_cLocation.X = xGameSpace - rand() % (35-5) - 5;
                     Enemy3[e].m_cLocation.Y = g_Console.getConsoleSize().Y - 32;
                     Enemy3[e].m_bActive = true;
 
                     ekilled++;
                     score++;
-                    Beep(440, 70);
+                    sndPlaySound(L"deflect.wav", SND_FILENAME | SND_ASYNC);
                 }
 
                 if (Shield[s].m_cLocation.X == BulletEnemy[e].m_cLocation.X && Shield[s].m_cLocation.Y == BulletEnemy[e].m_cLocation.Y)
@@ -1866,7 +2126,7 @@ void cShield()
                     BulletEnemy[e].m_bActive = true;
 
                     ekilled++;
-                    Beep(530, 70);
+                    sndPlaySound(L"deflect.wav", SND_FILENAME | SND_ASYNC);
                 }
                 if (Shield[s].m_cLocation.X == Rock[e].m_cLocation.X && Shield[s].m_cLocation.Y == Rock[e].m_cLocation.Y)
                 {
@@ -1877,7 +2137,7 @@ void cShield()
                     Rock[e].m_bActive = true;
 
                     ekilled++;
-                    Beep(530, 70);
+                    sndPlaySound(L"deflect.wav", SND_FILENAME | SND_ASYNC);
                 }
             }
             for (int i = 0; i < sizeof(BossBullet) / sizeof(BossBullet[0]); i++)
@@ -1890,7 +2150,7 @@ void cShield()
                     BossBullet[i].m_bActive = true; // stops rendering
 
                     ekilled++;
-                    Beep(440, 70);
+                    sndPlaySound(L"deflect.wav", SND_FILENAME | SND_ASYNC);
                 }
             }
         }
@@ -1915,6 +2175,7 @@ void cBomb()
     {
         for (int e = 0; e < difficulty; e++)
         {
+            destroyed[3] = true;
             Enemy[e].m_bActive = false;
             Enemy2[e].m_bActive = false;
             BulletEnemy[e].m_bActive = false;
@@ -1924,13 +2185,13 @@ void cBomb()
             Rock[e].m_bActive = false;
             
 
-            Enemy[e].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35 - 5) - 5;
-            Enemy2[e].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35 - 5)- 5;
+            Enemy[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
+            Enemy2[e].m_cLocation.X = xGameSpace - rand() % (35 - 5)- 5;
             BulletEnemy[e].m_cLocation.X = Enemy2[e].m_cLocation.X;
-            Enemy3[e].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35 - 5) - 5;
+            Enemy3[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
             BulletEnemy[e].m_cLocation.X = Enemy3[e].m_cLocation.X;
             BulletEnemy[e].m_cLocation.X = Enemy3[e].m_cLocation.X;
-            Rock[e].m_cLocation.X = g_Console.getConsoleSize().X - rand() % (35 - 5) - 5;
+            Rock[e].m_cLocation.X = xGameSpace - rand() % (35 - 5) - 5;
 
 
             BulletEnemy[e].m_cLocation.Y = Enemy2[e].m_cLocation.Y - 1;
@@ -1953,7 +2214,163 @@ void cBomb()
 
         PowerEaten = false;
         ekilled = 0;
-        Beep(200, 100);
+        sndPlaySound(L"dodge.wav", SND_FILENAME | SND_ASYNC);
+    }
+}
+
+void rPModel()
+{
+    WORD Color = 0x0B;
+
+    p_Model[0].m_cLocation.X = g_sChar.m_cLocation.X - 1; //Left Wing
+    p_Model[0].m_cLocation.Y = g_sChar.m_cLocation.Y;
+
+    p_Model[1].m_cLocation.X = g_sChar.m_cLocation.X + 1; // Right Wing
+    p_Model[1].m_cLocation.Y = g_sChar.m_cLocation.Y;
+
+    if (g_sChar.m_bActive == true)
+    {
+        for (int i = 0; i < 2; i++)
+        {
+            g_Console.writeToBuffer(p_Model[i].m_cLocation, (char)18, Color);
+        }
+    }
+}
+
+void checkDestroyed()
+{
+    WORD Color = 0x1Ad;
+
+    if (destroyed[0] == true)
+    {
+        g_Console.writeToBuffer(Destroyed[0].m_cLocation, "*", Color);
+        destroyed[0] = false;
+    }
+
+    if (destroyed[1] == true)
+    {
+        g_Console.writeToBuffer(Destroyed[1].m_cLocation, "*", Color);
+        destroyed[1] = false;
+    }
+    if (destroyed[2] == true)
+    {
+        g_Console.writeToBuffer(Destroyed[2].m_cLocation, "*", Color);
+        destroyed[2] = false;
+    }
+    if (destroyed[3] == true)
+    {
+        for (int i = 0; i < difficulty; i++)
+        {
+            g_Console.writeToBuffer(Enemy[i].m_cLocation, "*", Color);
+            g_Console.writeToBuffer(Enemy2[i].m_cLocation, "*", Color);
+            g_Console.writeToBuffer(Enemy3[i].m_cLocation, "*", Color);
+        }
+        destroyed[3] = false;
+    }
+}
+
+void Dodge()
+{
+    COORD text;
+    text.X = g_Console.getConsoleSize().X - 29;
+    text.Y = g_Console.getConsoleSize().Y - 2;
+
+    g_Console.writeToBuffer(text, "Dodge Meter: " + to_string(DodgeCounter));
+
+    if (DodgeCounter == 1)
+    {
+        if (g_skKeyEvent[K_UP].keyDown && pDodge == true)
+        {
+            if ((g_sChar.m_cLocation.Y - 1) > 1)
+            {
+                g_sChar.m_cLocation.Y = g_sChar.m_cLocation.Y - 2;
+            }
+            else
+            {
+                g_sChar.m_cLocation.Y = 1;
+            }
+            DodgeCounter = 0;
+            pDodge = false;
+            sndPlaySound(L"dodge.wav", SND_FILENAME | SND_ASYNC);
+        }
+        if (g_skKeyEvent[K_DOWN].keyDown && pDodge == true)
+        {
+            if ((g_sChar.m_cLocation.Y + 1) < 28)
+            {
+                g_sChar.m_cLocation.Y = g_sChar.m_cLocation.Y + 2;
+            }
+            else
+            {
+                g_sChar.m_cLocation.Y = 28;
+            }
+            DodgeCounter = 0;
+            pDodge = false;
+            sndPlaySound(L"dodge.wav", SND_FILENAME | SND_ASYNC);
+        }
+        if (g_skKeyEvent[K_RIGHT].keyDown && pDodge == true)
+        {
+            if ((g_sChar.m_cLocation.X + 1) < 38)
+            {
+                g_sChar.m_cLocation.X = g_sChar.m_cLocation.X + 3;
+            }
+            else
+            {
+                g_sChar.m_cLocation.X = 38;
+            }
+            DodgeCounter = 0;
+            pDodge = false;
+            sndPlaySound(L"dodge.wav", SND_FILENAME | SND_ASYNC);
+        }
+        if (g_skKeyEvent[K_LEFT].keyDown && pDodge == true)
+        {
+            if ((g_sChar.m_cLocation.X - 1) > 1)
+            {
+                g_sChar.m_cLocation.X = g_sChar.m_cLocation.X - 3;
+            }
+            else
+            {
+                g_sChar.m_cLocation.X = 1;
+            }
+            DodgeCounter = 0;
+            pDodge = false;
+            sndPlaySound(L"dodge.wav", SND_FILENAME | SND_ASYNC);
+        }
+    }
+    else
+    {
+        if (DodgeCounter > 1)
+        {
+            DodgeCounter = 1;
+        }
+        else
+        {
+            DodgeCounter = DodgeCounter + 0.006;
+        }
+
+    }
+}
+
+void renderDifficulty(void)
+{
+    COORD c;
+    c.X = 10;
+    c.Y = g_Console.getConsoleSize().Y / 4;
+    if ((g_dElapsedTime > 45.0) && (g_dElapsedTime < 55.0))
+    {
+        g_Console.writeToBuffer(c, "Difficulty increased", 0x0F);
+    }
+    if ((g_dElapsedTime > 90.0) && (g_dElapsedTime < 100.0))
+    {
+        g_Console.writeToBuffer(c, "Difficulty increased", 0x0F);
+    }
+    if ((g_dElapsedTime > 135.0) && (g_dElapsedTime < 145.0))
+    {
+        g_Console.writeToBuffer(c, "Difficulty increased", 0x0F);
+    }
+    if ((g_dElapsedTime > 180.0) && (g_dElapsedTime < 190.0))
+    {
+        c.X -= 1;
+        g_Console.writeToBuffer(c, "Max difficulty reached", 0x0F);
     }
 }
 
@@ -1979,7 +2396,9 @@ void movePowerUp()
 
     }
 
-    if ((PowerUp.m_cLocation.Y == g_sChar.m_cLocation.Y && PowerUp.m_cLocation.X == g_sChar.m_cLocation.X) || PowerUp.m_cLocation.Y == 29)
+    if ((PowerUp.m_cLocation.Y == g_sChar.m_cLocation.Y && PowerUp.m_cLocation.X == g_sChar.m_cLocation.X) || PowerUp.m_cLocation.Y == 29 ||
+        (PowerUp.m_cLocation.Y == g_sChar.m_cLocation.Y && PowerUp.m_cLocation.X == g_sChar.m_cLocation.X - 1) ||
+        (PowerUp.m_cLocation.Y == g_sChar.m_cLocation.Y && PowerUp.m_cLocation.X == g_sChar.m_cLocation.X + 1))
     {
         if (PowerUp.m_cLocation.Y == 29)
         {
@@ -1999,23 +2418,27 @@ void renderSpecial()
     {
         if (Special == 1)
         {
+            WORD Color = 0x0C;
             SpecialText = "Multishot";
-            g_Console.writeToBuffer(PowerUp.m_cLocation, 'M');
+            g_Console.writeToBuffer(PowerUp.m_cLocation, 'M',Color);
         }
         else if (Special == 2)
         {
+            WORD Color = 0x0A;
             SpecialText = "Health";
-            g_Console.writeToBuffer(PowerUp.m_cLocation, 'H');
+            g_Console.writeToBuffer(PowerUp.m_cLocation, 'H',Color);
         }
         else if (Special == 3)
         {
+            WORD Color = 0x0E;
             SpecialText = "Bomb";
-            g_Console.writeToBuffer(PowerUp.m_cLocation, 'B');
+            g_Console.writeToBuffer(PowerUp.m_cLocation, 'B',Color);
         }
         else if (Special == 4)
         {
+            WORD Color = 0x0B;
             SpecialText = "Shield";
-            g_Console.writeToBuffer(PowerUp.m_cLocation, 'S');
+            g_Console.writeToBuffer(PowerUp.m_cLocation, 'S',Color);
         }
 
     }
@@ -2028,16 +2451,16 @@ void checkKilled()
     if ((ekilled % 10 == 0) && (ekilled > 0) && PowerUp.m_bActive == false)
     {
         number = rand() % (35 - 5) - 5;
-        PowerUp.m_cLocation.X = (g_Console.getConsoleSize().X - number);
+        PowerUp.m_cLocation.X = (xGameSpace - number);
         for (int i = 0; i < difficulty; i++)
         {
             if ((PowerUp.m_cLocation.X == Enemy[i].m_cLocation.X) || (PowerUp.m_cLocation.X == Enemy2[i].m_cLocation.X))
             {
                 number = rand() % (35 - 5) - 5;
-                PowerUp.m_cLocation.X = (g_Console.getConsoleSize().X - number);
+                PowerUp.m_cLocation.X = (xGameSpace- number);
                 while (PowerUp.m_cLocation.X > 39 || PowerUp.m_cLocation.Y < 1)
                 {
-                    PowerUp.m_cLocation.X = (g_Console.getConsoleSize().X - (rand() % (35 - 5) - 5));
+                    PowerUp.m_cLocation.X = (xGameSpace - (rand() % (35 - 5) - 5));
                 }
             }
         }
@@ -2048,6 +2471,876 @@ void checkKilled()
 
     }
 }
+
+void consoleBG(void)
+{
+    COORD c;
+    for (unsigned int rows = 0; rows < 60; ++rows)
+    {
+        for (unsigned int cols = 0; cols < 30; ++cols)
+        {
+            c.X = rows;
+            c.Y = cols;
+            g_Console.writeToBuffer(c, " ", 0x00);
+        }
+    }
+}
+
+void update2(double dt)
+{
+    // get the delta time
+    g_dElapsedTime += dt;
+    g_dDeltaTime = dt;
+
+    switch (g_eGameState)
+    {
+    case S_SPLASHSCREEN: splashScreenWait2(); // game logic for the splash screen
+        break;
+    case S_GAME: updateGame(); // gameplay logic when we are in the game
+        break;
+    }
+}
+
+void splashScreenWait2(void)
+{
+    if (g_dElapsedTime > 0.1) // wait for 3 seconds to switch to game mode, else do nothing
+        g_eGameState = S_GAME;
+}
+
+void resetTimer(void)
+{
+    g_dElapsedTime = 0.0;
+    g_eGameState = S_SPLASHSCREEN;
+}
+
+void resetName(void)
+{
+    name = "";
+}
+
+void resetClass(void)
+{
+    int reset = 0;
+    for (unsigned int x = 0; x < 6; ++x)
+    {
+        score1[x].setName("");
+        score1[x].setScore(reset);
+    }
+}
+
+void setInfo(void)
+{
+
+    for (unsigned int x = 0; x < 6; ++x) // 6 as there are 6 class, 5 being used for the leaderboard if there are any saved scores and last being the player's
+    {
+        if (score1[x].getScore() == 0)
+        {
+            score1[x].setName(name);
+            score1[x].setScore(score); // set to score
+            break;
+        }
+    }
+}
+
+void render2(void) // for rendering the menu
+{
+    clearScreen();
+    consoleBG();
+    renderMenu();
+    renderToScreen();
+}
+
+void gameTitle(void)
+{
+    COORD c;
+    c.X = 1;
+    c.Y = 1;
+    g_Console.writeToBuffer(c, "                           db", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "                          d88b", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "  d8888b   8888888b      d8888b       d8888b   8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "d88P  Y88b 888888888b   d888888b    d88888888b 8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "Y88b       888    88b  d88    88b  888P    Y8P 888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "  Y88b     888    88P  888    888  88P         8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "     Y88b  888888888P  8888888888  88b         8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "       888 88888888P  d8888888888b 888b    d8b 888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "Y88b  d88P 888       d8888    8888b Y8888888P  8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "  Y8888P   888         8888888888     Y8888P   8888888888", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "                         88  88", 0x0F);
+
+    c.X += 1;
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "                               8", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "     d88     db     88b    db d8b db    88888888b", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "    d888    d88b    888b  d888888888b   888888888b", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "    Y88p   d8888b   d88P d88 Y888P 88b  888    888b", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "     Y88bd88888888bd88P   Y8   Y   8P   888888888P", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "      Y8888P    Y8888P   d88888888888b  888888888P", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "       Y88P      Y88P    888  Y8P  888  888   Y88b", 0x0F);
+    c.Y += 1;
+    g_Console.writeToBuffer(c, "        qp        qp     888   8   888  888    Y88b", 0x0F);
+}
+
+int renderMenu(void)
+{
+    int choice;
+    COORD c;
+
+    start_gameTime = 0;
+    PowerEaten = false;
+    ekilled = 0;
+    score = 0;
+    life = 3;
+
+    gameTitle();
+    c.X = g_Console.getConsoleSize().X / 2 - 3; 
+    c.Y = 23;
+    g_Console.writeToBuffer(c, "START", 0x0F);
+    
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "SCORE", 0x0F);
+
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "QUIT", 0x0F);
+    
+    c.X = 2;
+    c.Y = 28;
+    g_Console.writeToBuffer(c, "Group 11", 0x0F);
+    if (g_skKeyEvent[K_ESCAPE].keyDown)
+        return choice = 2;
+    if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 22) && (g_mouseEvent.mousePosition.Y <= 23)))
+        return choice = 1;
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 24) && (g_mouseEvent.mousePosition.Y <= 25)))
+        return choice = 2;
+    else if ((g_mouseEvent.buttonState == FROM_LEFT_1ST_BUTTON_PRESSED) && ((g_mouseEvent.mousePosition.X >= g_Console.getConsoleSize().X / 2 - 3) && (g_mouseEvent.mousePosition.X <= g_Console.getConsoleSize().X / 2 + 4)) && ((g_mouseEvent.mousePosition.Y >= 26) && (g_mouseEvent.mousePosition.Y <= 27)))
+        return choice = 3;
+}
+
+void render3(void)
+{
+    clearScreen();
+    consoleBG();
+    renderScore();
+    renderToScreen();
+}
+
+bool renderScore(void)
+{
+    COORD c;
+    std::ostringstream ss;
+
+    c.X = g_Console.getConsoleSize().X / 2 - 7;
+    c.Y = g_Console.getConsoleSize().Y / 4 - 2;
+
+    g_Console.writeToBuffer(c, "LEADERBOARD");
+    c.X -= 4;
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "RANK     NAME  SCORE");
+    c.X += 1;
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "1");
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "2");
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "3");
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "4");
+    c.Y += 2;
+    g_Console.writeToBuffer(c, "5");
+
+    c.X -= 4;
+    c.Y += 6;
+    g_Console.writeToBuffer(c, "Press Esc to return to menu");
+
+    std::string arr2[6];
+    int arr[] = { score1[0].getScore(), score1[1].getScore(), score1[2].getScore(),
+                  score1[3].getScore(), score1[4].getScore(), score1[5].getScore() };
+    int n = sizeof(arr) / sizeof(arr[0]);
+
+    std::sort(arr, arr + n, std::greater<int>());
+    for (unsigned int x = 0; x < 6; ++x)
+    {
+        for (unsigned int y = 0; y < 6; ++y)
+        {
+            if (arr[x] == score1[y].getScore())
+            {
+                arr2[x] = score1[y].getName(); // have this rewrite into the new file
+            }
+        }
+    }
+
+    resetClass();
+    c.Y = g_Console.getConsoleSize().Y / 4;
+    for (int i = 0; i < 5; ++i)
+    {
+        c.X = g_Console.getConsoleSize().X / 2 - 2;
+
+        if (arr2[i] == "")
+        {
+            c.X += 5;
+            c.Y += 2;
+            score1[i].setName(arr2[i]);
+            score1[i].setScore(arr[i]);
+            ss.str("");
+            ss << score1[i].getName() << "   " << score1[i].getScore();
+            g_Console.writeToBuffer(c, ss.str());
+        }
+        else
+        {
+            c.Y += 2;
+            score1[i].setName(arr2[i]);
+            score1[i].setScore(arr[i]);
+            ss.str("");
+            ss << score1[i].getName() << "   " << score1[i].getScore();
+            g_Console.writeToBuffer(c, ss.str());
+        }
+        name2[i] = arr2[i];
+        score2[i] = arr[i];
+    }
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+    {
+        return false;
+    }
+
+}
+
+void render4(void)
+{
+    clearScreen();
+    consoleBG();
+    renderName();
+    renderToScreen();
+}
+
+int renderName(void)
+{
+    bool conti = false;
+    COORD a, b, c;
+
+    a.X = g_Console.getConsoleSize().X / 2 - 16; a.Y = 10;
+    b.X = g_Console.getConsoleSize().X / 2 - 14; b.Y = 16;
+    c.X = g_Console.getConsoleSize().X / 2 - 12; c.Y = 18;
+    g_Console.writeToBuffer(a, "Enter Player  Name (5 letters):", 0x0F);
+    g_Console.writeToBuffer(b, "Press 'Enter'  to continue", 0x0F);
+    g_Console.writeToBuffer(c, "Press 'Esc' to go back", 0x0F);
+
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+    {
+        resetName();
+        return 0;
+    }
+    else if ((g_skKeyEvent[K_ENTER].keyReleased) && (name.length() == 5))
+    {
+        return 1;
+    }
+    else
+    {
+        COORD c;
+        c.X = g_Console.getConsoleSize().X / 2 - 3;
+        c.Y = 13;
+
+        if (g_skKeyEvent[K_BACK].keyDown)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                std::string newn = name.substr(0, name.length() - 1);
+                name = newn;
+                eventCount = 0;
+            }
+        }
+        else if (name.length() == 5)
+        {
+            name = name;
+        }
+        else if (g_skKeyEvent[K_A].keyReleased)
+        {
+
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "A";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_B].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "B";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_C].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "C";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_D].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "D";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_E].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "E";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_F].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "F";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_G].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "G";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_H].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "H";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_I].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "I";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_J].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "J";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_K].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "K";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_L].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "L";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_M].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "M";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_N].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "N";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_O].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "O";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_P].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "P";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_Q].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "Q";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_R].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "R";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_S].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "S";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_T].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "T";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_U].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "U";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_V].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "V";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_W].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "W";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_X].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "X";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_Y].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "Y";
+                eventCount = 0;
+            }
+        }
+        else if (g_skKeyEvent[K_Z].keyReleased)
+        {
+            if (eventCount != 2)
+            {
+                ++eventCount;
+            }
+            else
+            {
+                name += "Z";
+                eventCount = 0;
+            }
+        }
+        g_Console.writeToBuffer(c, name, 0x0F);
+    }
+}
+
+void renderUI(void)
+{
+    COORD c;
+
+    // this part renders the player's name
+    {
+        c.X = 45;
+        c.Y = 2;
+        g_Console.writeToBuffer(c, "Player Name");
+
+        c.X += 3;
+        c.Y += 1;
+        g_Console.writeToBuffer(c, name);
+
+    }
+
+    // this part outputs the lives
+    {
+        c.X = 47;
+        c.Y = 7;
+        g_Console.writeToBuffer(c, "Lives");
+        c.X += 2;
+        c.Y += 1;
+        g_Console.writeToBuffer(c, to_string(life));
+    }
+
+    // this part outputs the score
+    {
+        c.X = 47;
+        c.Y = 12;
+        g_Console.writeToBuffer(c, "Score");
+        c.X += 2;
+        c.Y += 1;
+        g_Console.writeToBuffer(c, to_string(score));
+    }
+
+    // this part outputs the time
+    {
+        c.X = 47;
+        c.Y = 17;
+        g_Console.writeToBuffer(c, "Dodge");
+
+        c.X += 2;
+        c.Y += 1;
+        if (DodgeCounter != 1)
+        {
+            c.X -= 5;
+            g_Console.writeToBuffer(c, "Cooling Down");
+        }
+        else
+        {
+            c.X -= 2;
+            g_Console.writeToBuffer(c, "Ready");
+        }
+    }
+
+    // this part outputs the powerup being used
+    {
+        c.X = 45;
+        c.Y = 22;
+        g_Console.writeToBuffer(c, "PowerUps");
+        c.Y += 2;
+        c.X += 1;
+        if ((Special == 1) && (PowerEaten == true))
+        {
+            c.X -= 1;
+            g_Console.writeToBuffer(c, "Multi-Shot", 0x0F);
+        }
+        else if ((Special == 4) && (PowerEaten == true))
+        {
+            g_Console.writeToBuffer(c, "Shield", 0x0F);
+        }
+        else
+        {
+            g_Console.writeToBuffer(c, "", 0x0F);
+        }
+    }
+
+    // this part outputs the UI borders
+    for (unsigned int x = 0; x < 3; ++x)
+    {
+        for (unsigned int y = 0; y < 30; ++y)
+        {
+            if (x == 2)
+                {c.X = 59; c.Y = y;}
+            else
+                {c.X = x * 39; c.Y = y;}
+            g_Console.writeToBuffer(c, " ", 0xF0);
+        }
+    }
+    for (unsigned int x = 0; x < 2; ++x)
+    {
+        for (unsigned int y = 0; y < 60; ++y)
+        {
+            c.X = y;
+            c.Y = x * 29;
+            g_Console.writeToBuffer(c, " ", 0xF0);
+        }
+    }
+    for (unsigned int x = 1; x < 5; ++x)
+    {
+        for (unsigned int y = 40; y < 60; ++y)
+        {
+            c.X = y;
+            c.Y = 5 * x;
+            g_Console.writeToBuffer(c, " ", 0xF0);
+        }
+    }
+    for (unsigned int x = 1; x < 5; ++x)
+    {
+        for (unsigned int y = 40; y < 60; ++y)
+        {
+            c.X = y;
+            c.Y = 25 + x;
+            g_Console.writeToBuffer(c, " ", 0xF0);
+        }
+    }
+    {
+        c.X = 44;
+        c.Y = 27;
+        g_Console.writeToBuffer(c, "Press  'Esc'", 0xF0);
+        c.X += 2;
+        c.Y += 1;
+        g_Console.writeToBuffer(c, "to quit", 0xF0);
+    }
+}
+
+void render5(void)
+{
+    clearScreen();
+    consoleBG();
+    renderResult();
+    renderToScreen();
+}
+
+bool renderResult(void)
+{
+    if (g_skKeyEvent[K_ESCAPE].keyReleased)
+    {
+        result = 0;
+        return true;
+    }
+
+    destroyEnemy();
+
+    COORD c;
+    std::ostringstream ss;
+    c.X = g_Console.getConsoleSize().X / 2;
+    c.Y = g_Console.getConsoleSize().Y / 3;
+
+    if (result == 1)
+    {
+        c.X -= 4;
+        g_Console.writeToBuffer(c, "Game Over");
+
+        c.X -= 9;
+        c.Y += 10;
+        g_Console.writeToBuffer(c, "Press 'Esc' to return to menu");
+
+        c.X = g_Console.getConsoleSize().X / 2 - 5;
+        c.Y = g_Console.getConsoleSize().Y / 3 + 4;
+
+        ss << "Name: " << name;
+        g_Console.writeToBuffer(c, ss.str());
+
+        c.Y += 2;
+        ss.str("");
+        ss << "Score: " << score;
+        g_Console.writeToBuffer(c, ss.str());
+    }
+}
+
+void initScore(void)
+{
+    std::ofstream outScore("score.txt");
+    for (unsigned int x = 0; x < 5; ++x)
+    {
+        outScore << score2[x] << std::endl;
+    }
+    outScore.close();
+
+    std::ofstream outName("name.txt");
+    for (unsigned int y = 0; y < 5; ++y)
+    {
+        outName << name2[y] << std::endl;
+    }
+    outName.close();
+}
+
+void outScore(void)
+{
+    std::ifstream inScore, inName;
+    inScore.open("score.txt");
+
+    if (inScore.fail())
+    {
+        std::cerr << "Error, could not open file" << std::endl;
+        exit(1);
+    }
+
+    int num[6];
+
+    inScore >> num[0] >> num[1] >> num[2] >> num[3] >> num[4];
+
+    for (unsigned int x = 0; x < 5; ++x)
+    {
+        if (num[x] < 0)
+        {
+            int nu = 0;
+            score1[x].setScore(nu);
+        }
+        else
+        {
+            int nu = num[x];
+            score1[x].setScore(nu);
+        }
+    }
+    inScore.close();
+
+    inName.open("name.txt");
+
+    if (inName.fail())
+    {
+        std::cerr << "Error, could not open file" << std::endl;
+        exit(1);
+    }
+
+    std::string nam[5];
+    inName >> nam[0] >> nam[1] >> nam[2] >> nam[3] >> nam[4];
+
+    for (unsigned int y = 0; y < 5; ++y)
+    {
+        std::string na = nam[y];
+        score1[y].setName(na);
+    }
+    inName.close();
+
+    // this resets the txt file
+    std::ofstream outScore("score.txt");
+    for (unsigned int x = 0; x < 5; ++x)
+    {
+        outScore << 0 << std::endl;
+    }
+    outScore.close();
+
+    std::ofstream outName("name.txt");
+    for (unsigned int y = 0; y < 5; ++y)
+    {
+        outName << "" << std::endl;
+    }
+    outName.close();
+}
+
 #pragma endregion
 
 
