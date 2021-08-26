@@ -1573,6 +1573,43 @@ void checkCollision()
         }
     }  
 
+    //Player Collision with Enemy
+    for (int i = 0; i < difficulty; i++)
+    {
+        if (g_sChar.m_cLocation.X == Enemy[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy[i].m_cLocation.Y)
+        {
+            life -= 1;
+            g_sChar.m_bActive = false;
+            g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+            g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
+            g_sChar.m_bActive = true;
+            Beep(175, 70);
+        }
+        if (g_sChar.m_cLocation.X == Enemy2[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy2[i].m_cLocation.Y)
+        {
+            if (Enemy2[i].m_bActive == true)
+            {
+                life -= 1;
+                g_sChar.m_bActive = false;
+                g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+                g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
+                g_sChar.m_bActive = true;
+            }
+        }
+        if (g_sChar.m_cLocation.X == Enemy3[i].m_cLocation.X && g_sChar.m_cLocation.Y == Enemy3[i].m_cLocation.Y)
+        {
+            if (Enemy3[i].m_bActive == true)
+            {
+                life -= 1;
+                g_sChar.m_bActive = false;
+                g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
+                g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y - 5;
+                g_sChar.m_bActive = true;
+            }
+        }
+
+        //Rock Collision is inside Rock Function
+    }
 }
 
 void renderGameInfo()
